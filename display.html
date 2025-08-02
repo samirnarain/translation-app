@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Translation Display - Audience</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #ffffff;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            color: #333;
+        }
+
+        .container {
+            width: 100%;
+            height: 100vh;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            padding: 20px;
+            border-radius: 15px;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            color: #333;
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            color: #666;
+            font-size: 1.1rem;
+        }
+
+        .nav {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .nav a {
+            background: #007bff;
+            color: white;
+            text-decoration: none;
+            padding: 12px 24px;
+            border-radius: 25px;
+            transition: all 0.3s ease;
+        }
+
+        .nav a:hover {
+            background: #0056b3;
+            transform: translateY(-2px);
+        }
+
+        .display-card {
+            background: #ffffff;
+            padding: 40px;
+            border-radius: 15px;
+            color: #333;
+            border: 1px solid #e9ecef;
+            text-align: center;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .translation-display {
+            margin: 20px 0;
+            padding: 30px;
+            background: #f8f9fa;
+            border-radius: 15px;
+            border: 2px solid #e9ecef;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
+            align-items: center;
+            position: relative;
+        }
+
+        .translation-history {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            right: 20px;
+            bottom: 200px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column-reverse;
+            gap: 15px;
+            padding-right: 10px;
+            z-index: 10;
+            max-height: calc(100% - 220px);
+        }
+
+        .history-item {
+            background: #ffffff;
+            padding: 15px;
+            border-radius: 10px;
+            border-left: 3px solid #007bff;
+            opacity: 0.9;
+            transition: opacity 0.3s ease;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+            hyphens: auto;
+        }
+
+        .history-item:hover {
+            opacity: 1;
+            background: #f8f9fa;
+        }
+
+        .history-original {
+            font-size: 0.9rem;
+            color: #666;
+            margin-bottom: 5px;
+            font-style: italic;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+        }
+
+        .history-translation {
+            font-size: 1.1rem;
+            color: #333;
+            font-weight: 500;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+            line-height: 1.3;
+        }
+
+        .history-timestamp {
+            font-size: 0.7rem;
+            color: #999;
+            margin-top: 5px;
+        }
+
+        .translation-text {
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: #333;
+            text-align: center;
+            line-height: 1.4;
+            margin-bottom: 20px;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+            max-width: 100%;
+            hyphens: auto;
+        }
+
+        .original-text {
+            font-size: 1.2rem;
+            color: #666;
+            margin-bottom: 15px;
+            font-style: italic;
+        }
+
+        .language-badge {
+            background: #007bff;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            color: white;
+            margin-top: 10px;
+        }
+
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 20px 0;
+        }
+
+        .status-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 10px;
+            animation: pulse 2s infinite;
+        }
+
+        .status-dot.connected {
+            background: #4CAF50;
+        }
+
+        .status-dot.disconnected {
+            background: #f44336;
+        }
+
+        .status-dot.receiving {
+            background: #FF9800;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+
+        .waiting-message {
+            font-size: 1.5rem;
+            color: #666;
+            text-align: center;
+        }
+
+        .connection-status {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 20px;
+            text-align: center;
+        }
+
+        .error {
+            background: rgba(244, 67, 54, 0.2);
+            color: #ffcdd2;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 15px;
+        }
+
+        .timestamp {
+            font-size: 0.8rem;
+            color: rgba(255, 255, 255, 0.5);
+            margin-top: 10px;
+        }
+
+        .fullscreen-button {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #007bff;
+            border: none;
+            color: white;
+            padding: 10px 15px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+
+        .fullscreen-button:hover {
+            background: #0056b3;
+            transform: scale(1.05);
+        }
+
+        @media (max-width: 768px) {
+            .translation-text {
+                font-size: 2rem;
+            }
+            
+            .original-text {
+                font-size: 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <button class="fullscreen-button" onclick="toggleFullscreen()">⛶ Fullscreen</button>
+
+    <div class="container">
+        <div class="header">
+            <h1>📺 Translation Display</h1>
+            <p>Real-time translated text appears here</p>
+        </div>
+
+        <nav class="nav">
+            <a href="control.html">Control</a>
+            <a href="display.html">Display</a>
+        </nav>
+
+        <div class="display-card">
+            <div class="status-indicator">
+                <div id="statusDot" class="status-dot disconnected"></div>
+                <span id="statusText">Connecting to translation service...</span>
+            </div>
+
+            <div class="translation-display">
+                <div id="translationHistory" class="translation-history"></div>
+                
+                <div id="waitingMessage" class="waiting-message">
+                    Waiting for translation...
+                </div>
+                
+                <div id="translationContent" style="display: none;">
+                    <div id="originalText" class="original-text"></div>
+                    <div id="translationText" class="translation-text"></div>
+                    <div id="languageBadge" class="language-badge"></div>
+                    <div id="timestamp" class="timestamp"></div>
+                </div>
+            </div>
+
+            <div id="connectionStatus" class="connection-status">
+                <div id="connectionMessage">Connecting to Firebase...</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+
+        // Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyBsVnpr1mc83O6ruDVgfveOuMI5yu-7Q4U",
+            authDomain: "ai-rt-translator.firebaseapp.com",
+            projectId: "ai-rt-translator",
+            storageBucket: "ai-rt-translator.firebasestorage.app",
+            messagingSenderId: "265687581133",
+            appId: "1:265687581133:web:d6a946380c19231e828484",
+            measurementId: "G-585R6F32J2",
+            databaseURL: "https://ai-rt-translator-default-rtdb.europe-west1.firebasedatabase.app"
+        };
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const database = getDatabase(app);
+
+        // DOM elements
+        const statusDot = document.getElementById('statusDot');
+        const statusText = document.getElementById('statusText');
+        const waitingMessage = document.getElementById('waitingMessage');
+        const translationContent = document.getElementById('translationContent');
+        const originalText = document.getElementById('originalText');
+        const translationText = document.getElementById('translationText');
+        const languageBadge = document.getElementById('languageBadge');
+        const timestamp = document.getElementById('timestamp');
+        const connectionMessage = document.getElementById('connectionMessage');
+        const translationHistory = document.getElementById('translationHistory');
+
+        // Store translation history
+        let translationHistoryArray = [];
+
+        // Language names mapping
+        const languageNames = {
+            'es': 'Spanish',
+            'fr': 'French',
+            'de': 'German',
+            'it': 'Italian',
+            'pt': 'Portuguese',
+            'ru': 'Russian',
+            'ja': 'Japanese',
+            'ko': 'Korean',
+            'zh': 'Chinese',
+            'ar': 'Arabic'
+        };
+
+        function updateStatus(connected, receiving = false) {
+            statusDot.className = 'status-dot';
+            if (connected) {
+                statusDot.classList.add('connected');
+                statusText.textContent = 'Connected';
+                connectionMessage.textContent = 'Connected to translation service';
+            } else if (receiving) {
+                statusDot.classList.add('receiving');
+                statusText.textContent = 'Receiving translation...';
+                connectionMessage.textContent = 'Receiving new translation';
+            } else {
+                statusDot.classList.add('disconnected');
+                statusText.textContent = 'Disconnected';
+                connectionMessage.textContent = 'Disconnected from translation service';
+            }
+        }
+
+        function showTranslation(data) {
+            waitingMessage.style.display = 'none';
+            translationContent.style.display = 'block';
+
+            originalText.textContent = `"${data.original}"`;
+            translationText.textContent = data.translated;
+            languageBadge.textContent = `Translated to ${languageNames[data.targetLanguage] || data.targetLanguage}`;
+            
+            const date = new Date(data.timestamp);
+            timestamp.textContent = `Received at ${date.toLocaleTimeString()}`;
+
+            // Add to history
+            addToHistory(data);
+
+            // Animate the translation
+            translationText.style.animation = 'none';
+            setTimeout(() => {
+                translationText.style.animation = 'fadeIn 0.5s ease-in';
+            }, 10);
+        }
+
+        function addToHistory(data) {
+            // Check if this translation is already in history (same timestamp and text)
+            const isDuplicate = translationHistoryArray.some(item => 
+                item.timestamp === data.timestamp && 
+                item.original === data.original && 
+                item.translated === data.translated
+            );
+            
+            if (!isDuplicate) {
+                // Add new translation to history
+                translationHistoryArray.unshift(data);
+                
+                // Keep only last 10 translations
+                if (translationHistoryArray.length > 10) {
+                    translationHistoryArray = translationHistoryArray.slice(0, 10);
+                }
+                
+                // Update history display
+                updateHistoryDisplay();
+            }
+        }
+
+        function updateHistoryDisplay() {
+            let historyHTML = '';
+            
+            translationHistoryArray.forEach((item, index) => {
+                if (index === 0) return; // Skip current translation
+                
+                const date = new Date(item.timestamp);
+                const timeString = date.toLocaleTimeString();
+                
+                historyHTML += `
+                    <div class="history-item">
+                        <div class="history-original">"${item.original}"</div>
+                        <div class="history-translation">${item.translated}</div>
+                        <div class="history-timestamp">${timeString}</div>
+                    </div>
+                `;
+            });
+            
+            translationHistory.innerHTML = historyHTML;
+        }
+
+        function showWaiting() {
+            waitingMessage.style.display = 'block';
+            translationContent.style.display = 'none';
+        }
+
+        // Listen for real-time updates from Firebase
+        try {
+            const liveTextRef = ref(database, 'live_text');
+            
+            onValue(liveTextRef, (snapshot) => {
+                updateStatus(true);
+                
+                if (snapshot.exists()) {
+                    const data = snapshot.val();
+                    updateStatus(true, true);
+                    showTranslation(data);
+                    
+                    // Reset status after showing translation
+                    setTimeout(() => {
+                        updateStatus(true);
+                    }, 2000);
+                } else {
+                    showWaiting();
+                }
+            }, (error) => {
+                console.error('Error listening for translations:', error);
+                updateStatus(false);
+                connectionMessage.textContent = 'Error connecting to Firebase';
+            });
+        } catch (error) {
+            console.error('Firebase not configured:', error);
+            updateStatus(false);
+            connectionMessage.textContent = 'Error connecting to Firebase';
+        }
+
+        // Fullscreen functionality
+        window.toggleFullscreen = function() {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen().catch(err => {
+                    console.log(`Error attempting to enable fullscreen: ${err.message}`);
+                });
+            } else {
+                document.exitFullscreen();
+            }
+        };
+
+        // Add CSS for fade-in animation
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes fadeIn {
+                from { opacity: 0; transform: translateY(20px); }
+                to { opacity: 1; transform: translateY(0); }
+            }
+        `;
+        document.head.appendChild(style);
+    </script>
+</body>
+</html> 

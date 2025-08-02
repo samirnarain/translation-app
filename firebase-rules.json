@@ -1,0 +1,13 @@
+{
+  "rules": {
+    "live_text": {
+      ".read": true,
+      ".write": true,
+      ".validate": "newData.hasChildren(['original', 'translated', 'targetLanguage', 'timestamp'])"
+    },
+    "$other": {
+      ".read": false,
+      ".write": false
+    }
+  }
+} 
