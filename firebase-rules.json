@@ -5,6 +5,11 @@
       ".write": true,
       ".validate": "newData.hasChildren(['original', 'translated', 'targetLanguage', 'timestamp'])"
     },
+    "streaming_text": {
+      ".read": true,
+      ".write": true,
+      ".validate": "newData.hasChildren(['text', 'translatedText', 'isInterim', 'sessionId', 'timestamp', 'targetLanguage'])"
+    },
     "$other": {
       ".read": false,
       ".write": false

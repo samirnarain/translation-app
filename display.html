@@ -32,37 +32,38 @@
         .header {
             background: #f8f9fa;
             border: 1px solid #e9ecef;
-            padding: 20px;
+            padding: 15px;
             border-radius: 15px;
-            margin-bottom: 30px;
+            margin-bottom: 15px;
             text-align: center;
         }
 
         .header h1 {
             color: #333;
-            font-size: 2.5rem;
-            margin-bottom: 10px;
+            font-size: 2rem;
+            margin-bottom: 5px;
         }
 
         .header p {
             color: #666;
-            font-size: 1.1rem;
+            font-size: 1rem;
         }
 
         .nav {
             display: flex;
             justify-content: center;
-            gap: 20px;
-            margin-bottom: 30px;
+            gap: 15px;
+            margin-bottom: 15px;
         }
 
         .nav a {
             background: #007bff;
             color: white;
             text-decoration: none;
-            padding: 12px 24px;
-            border-radius: 25px;
+            padding: 10px 20px;
+            border-radius: 20px;
             transition: all 0.3s ease;
+            font-size: 0.9rem;
         }
 
         .nav a:hover {
@@ -70,98 +71,112 @@
             transform: translateY(-2px);
         }
 
-        .display-card {
+        .nav a.active {
+            background: #28a745;
+            box-shadow: 0 2px 8px rgba(40, 167, 69, 0.3);
+        }
+
+        .main-content {
+            display: flex;
+            flex: 1;
+            gap: 15px;
+            min-height: 0;
+        }
+
+        .left-panel {
+            flex: 2;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .right-panel {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .streaming-section {
+            background: #fff3cd;
+            border: 2px solid #ffeaa7;
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+            position: relative;
+            min-height: 120px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .streaming-section.active {
+            background: #d1ecf1;
+            border-color: #bee5eb;
+        }
+
+        .streaming-section h3 {
+            color: #856404;
+            font-size: 1rem;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .streaming-indicator {
+            width: 10px;
+            height: 10px;
+            background: #ffc107;
+            border-radius: 50%;
+            animation: blink 1s infinite;
+        }
+
+        .streaming-text {
+            font-size: 1.8rem;
+            color: #856404;
+            font-weight: 500;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+            max-width: 100%;
+            hyphens: auto;
+            line-height: 1.3;
+        }
+
+        .streaming-section.active .streaming-text {
+            color: #0c5460;
+        }
+
+        .streaming-section.hidden {
+            display: none;
+        }
+
+        .final-translation-section {
             background: #ffffff;
-            padding: 40px;
-            border-radius: 15px;
-            color: #333;
-            border: 1px solid #e9ecef;
+            border: 2px solid #e9ecef;
+            border-radius: 12px;
+            padding: 20px;
             text-align: center;
             flex: 1;
             display: flex;
             flex-direction: column;
             justify-content: center;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-        }
-
-        .translation-display {
-            margin: 20px 0;
-            padding: 30px;
-            background: #f8f9fa;
-            border-radius: 15px;
-            border: 2px solid #e9ecef;
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            justify-content: flex-end;
             align-items: center;
-            position: relative;
+            min-height: 120px;
         }
 
-        .translation-history {
-            position: absolute;
-            top: 20px;
-            left: 20px;
-            right: 20px;
-            bottom: 200px;
-            overflow-y: auto;
-            display: flex;
-            flex-direction: column-reverse;
-            gap: 15px;
-            padding-right: 10px;
-            z-index: 10;
-            max-height: calc(100% - 220px);
-        }
-
-        .history-item {
-            background: #ffffff;
-            padding: 15px;
-            border-radius: 10px;
-            border-left: 3px solid #007bff;
-            opacity: 0.9;
-            transition: opacity 0.3s ease;
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-            word-wrap: break-word;
-            overflow-wrap: break-word;
-            hyphens: auto;
-        }
-
-        .history-item:hover {
-            opacity: 1;
-            background: #f8f9fa;
-        }
-
-        .history-original {
-            font-size: 0.9rem;
-            color: #666;
-            margin-bottom: 5px;
-            font-style: italic;
-            word-wrap: break-word;
-            overflow-wrap: break-word;
-        }
-
-        .history-translation {
-            font-size: 1.1rem;
-            color: #333;
-            font-weight: 500;
-            word-wrap: break-word;
-            overflow-wrap: break-word;
-            line-height: 1.3;
-        }
-
-        .history-timestamp {
-            font-size: 0.7rem;
-            color: #999;
-            margin-top: 5px;
+        .final-translation-section.hidden {
+            display: none;
         }
 
         .translation-text {
-            font-size: 2.5rem;
+            font-size: 2.2rem;
             font-weight: bold;
             color: #333;
             text-align: center;
-            line-height: 1.4;
-            margin-bottom: 20px;
+            line-height: 1.3;
+            margin-bottom: 15px;
             word-wrap: break-word;
             overflow-wrap: break-word;
             max-width: 100%;
@@ -169,33 +184,129 @@
         }
 
         .original-text {
-            font-size: 1.2rem;
+            font-size: 0.9rem;
             color: #666;
-            margin-bottom: 15px;
+            margin-bottom: 10px;
             font-style: italic;
         }
 
         .language-badge {
             background: #007bff;
-            padding: 8px 16px;
-            border-radius: 20px;
-            font-size: 0.9rem;
+            padding: 6px 12px;
+            border-radius: 15px;
+            font-size: 0.8rem;
             color: white;
-            margin-top: 10px;
+            margin-top: 8px;
+        }
+
+        .history-section {
+            background: #ffffff;
+            border: 1px solid #e9ecef;
+            border-radius: 12px;
+            padding: 15px;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .history-section h3 {
+            color: #333;
+            font-size: 1.1rem;
+            margin-bottom: 12px;
+            text-align: center;
+        }
+
+        .history-list {
+            flex: 1;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .history-item {
+            background: #f8f9fa;
+            padding: 12px;
+            border-radius: 8px;
+            border-left: 3px solid #007bff;
+            transition: all 0.3s ease;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        .history-item:nth-child(1) {
+            background: #e3f2fd;
+            border-left-color: #2196f3;
+        }
+
+        .history-item:nth-child(2) {
+            background: #d4e6f7;
+            border-left-color: #1976d2;
+        }
+
+        .history-item:nth-child(3) {
+            background: #c5daf1;
+            border-left-color: #1565c0;
+        }
+
+        .history-item:nth-child(n+4) {
+            background: #f8f9fa;
+            border-left-color: #6c757d;
+        }
+
+        .history-item:hover {
+            background: #e9ecef;
+            transform: translateX(3px);
+        }
+
+        .history-original {
+            font-size: 1rem;
+            color: #666;
+            margin-bottom: 4px;
+            font-style: italic;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+        }
+
+        .history-translation {
+            font-size: 1.2rem;
+            color: #333;
+            font-weight: 500;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+            line-height: 1.2;
+        }
+
+        .history-timestamp {
+            font-size: 0.7rem;
+            color: #999;
+            margin-top: 4px;
+        }
+
+        .status-section {
+            position: fixed;
+            bottom: 15px;
+            right: 15px;
+            background: rgba(248, 249, 250, 0.9);
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            padding: 8px 12px;
+            text-align: center;
+            z-index: 1000;
+            backdrop-filter: blur(5px);
         }
 
         .status-indicator {
             display: flex;
             align-items: center;
             justify-content: center;
-            margin: 20px 0;
+            margin-bottom: 0;
         }
 
         .status-dot {
-            width: 12px;
-            height: 12px;
+            width: 6px;
+            height: 6px;
             border-radius: 50%;
-            margin-right: 10px;
+            margin-right: 6px;
             animation: pulse 2s infinite;
         }
 
@@ -211,39 +322,27 @@
             background: #FF9800;
         }
 
+        .status-text {
+            font-size: 0.7rem;
+            color: #333;
+        }
+
+        .waiting-message {
+            font-size: 1.2rem;
+            color: #666;
+            text-align: center;
+            padding: 30px;
+        }
+
         @keyframes pulse {
             0% { opacity: 1; }
             50% { opacity: 0.5; }
             100% { opacity: 1; }
         }
 
-        .waiting-message {
-            font-size: 1.5rem;
-            color: #666;
-            text-align: center;
-        }
-
-        .connection-status {
-            background: #f8f9fa;
-            border: 1px solid #e9ecef;
-            padding: 15px;
-            border-radius: 10px;
-            margin-top: 20px;
-            text-align: center;
-        }
-
-        .error {
-            background: rgba(244, 67, 54, 0.2);
-            color: #ffcdd2;
-            padding: 15px;
-            border-radius: 8px;
-            margin-top: 15px;
-        }
-
-        .timestamp {
-            font-size: 0.8rem;
-            color: rgba(255, 255, 255, 0.5);
-            margin-top: 10px;
+        @keyframes blink {
+            0%, 50% { opacity: 1; }
+            51%, 100% { opacity: 0.3; }
         }
 
         .fullscreen-button {
@@ -258,6 +357,7 @@
             cursor: pointer;
             font-size: 1rem;
             transition: all 0.3s ease;
+            z-index: 1000;
         }
 
         .fullscreen-button:hover {
@@ -266,12 +366,20 @@
         }
 
         @media (max-width: 768px) {
+            .main-content {
+                flex-direction: column;
+            }
+            
             .translation-text {
                 font-size: 2rem;
             }
             
-            .original-text {
-                font-size: 1rem;
+            .streaming-text {
+                font-size: 1.5rem;
+            }
+            
+            .header h1 {
+                font-size: 2rem;
             }
         }
     </style>
@@ -287,32 +395,43 @@
 
         <nav class="nav">
             <a href="control.html">Control</a>
-            <a href="display.html">Display</a>
+            <a href="display.html" class="active">Display</a>
         </nav>
 
-        <div class="display-card">
-            <div class="status-indicator">
-                <div id="statusDot" class="status-dot disconnected"></div>
-                <span id="statusText">Connecting to translation service...</span>
-            </div>
+        <div class="main-content">
+            <div class="left-panel">
+                <div class="status-section">
+                    <div class="status-indicator">
+                        <div id="statusDot" class="status-dot disconnected"></div>
+                        <span id="statusText" class="status-text">Connecting to translation service...</span>
+                    </div>
+                </div>
 
-            <div class="translation-display">
-                <div id="translationHistory" class="translation-history"></div>
-                
+                <div id="streamingSection" class="streaming-section hidden">
+                    <h3>
+                        <span>🎤 Live Speech</span>
+                        <div class="streaming-indicator"></div>
+                    </h3>
+                    <div id="streamingText" class="streaming-text"></div>
+                </div>
+
+                <div id="finalTranslationSection" class="final-translation-section">
+                    <h3>✅ Final Translation</h3>
+                    <div id="originalText" class="original-text">Waiting for translation...</div>
+                    <div id="translationText" class="translation-text"></div>
+                    <div id="languageBadge" class="language-badge"></div>
+                </div>
+
                 <div id="waitingMessage" class="waiting-message">
                     Waiting for translation...
                 </div>
-                
-                <div id="translationContent" style="display: none;">
-                    <div id="originalText" class="original-text"></div>
-                    <div id="translationText" class="translation-text"></div>
-                    <div id="languageBadge" class="language-badge"></div>
-                    <div id="timestamp" class="timestamp"></div>
-                </div>
             </div>
 
-            <div id="connectionStatus" class="connection-status">
-                <div id="connectionMessage">Connecting to Firebase...</div>
+            <div class="right-panel">
+                <div class="history-section">
+                    <h3>📚 Translation History</h3>
+                    <div id="translationHistory" class="history-list"></div>
+                </div>
             </div>
         </div>
     </div>
@@ -341,14 +460,14 @@
         // DOM elements
         const statusDot = document.getElementById('statusDot');
         const statusText = document.getElementById('statusText');
-        const waitingMessage = document.getElementById('waitingMessage');
-        const translationContent = document.getElementById('translationContent');
+        const streamingText = document.getElementById('streamingText');
         const originalText = document.getElementById('originalText');
         const translationText = document.getElementById('translationText');
         const languageBadge = document.getElementById('languageBadge');
-        const timestamp = document.getElementById('timestamp');
-        const connectionMessage = document.getElementById('connectionMessage');
         const translationHistory = document.getElementById('translationHistory');
+        const streamingSection = document.getElementById('streamingSection');
+        const finalTranslationSection = document.getElementById('finalTranslationSection');
+        const waitingMessage = document.getElementById('waitingMessage');
 
         // Store translation history
         let translationHistoryArray = [];
@@ -372,28 +491,22 @@
             if (connected) {
                 statusDot.classList.add('connected');
                 statusText.textContent = 'Connected';
-                connectionMessage.textContent = 'Connected to translation service';
             } else if (receiving) {
                 statusDot.classList.add('receiving');
                 statusText.textContent = 'Receiving translation...';
-                connectionMessage.textContent = 'Receiving new translation';
             } else {
                 statusDot.classList.add('disconnected');
                 statusText.textContent = 'Disconnected';
-                connectionMessage.textContent = 'Disconnected from translation service';
             }
         }
 
         function showTranslation(data) {
             waitingMessage.style.display = 'none';
-            translationContent.style.display = 'block';
+            streamingSection.classList.add('hidden');
 
             originalText.textContent = `"${data.original}"`;
             translationText.textContent = data.translated;
             languageBadge.textContent = `Translated to ${languageNames[data.targetLanguage] || data.targetLanguage}`;
-            
-            const date = new Date(data.timestamp);
-            timestamp.textContent = `Received at ${date.toLocaleTimeString()}`;
 
             // Add to history
             addToHistory(data);
@@ -414,7 +527,7 @@
             );
             
             if (!isDuplicate) {
-                // Add new translation to history
+                // Add new translation to history (at the beginning - newest on top)
                 translationHistoryArray.unshift(data);
                 
                 // Keep only last 10 translations
@@ -431,8 +544,6 @@
             let historyHTML = '';
             
             translationHistoryArray.forEach((item, index) => {
-                if (index === 0) return; // Skip current translation
-                
                 const date = new Date(item.timestamp);
                 const timeString = date.toLocaleTimeString();
                 
@@ -450,13 +561,49 @@
 
         function showWaiting() {
             waitingMessage.style.display = 'block';
-            translationContent.style.display = 'none';
+            streamingSection.classList.add('hidden');
+            originalText.textContent = 'Waiting for translation...';
+            translationText.textContent = '';
+            languageBadge.textContent = '';
+            updateStatus(false); // Show disconnected status
+        }
+
+        function showStreamingText(data) {
+            if (data.text && data.text.trim()) {
+                waitingMessage.style.display = 'none';
+                streamingSection.classList.remove('hidden');
+                
+                // Show both original and translated text if available
+                if (data.translatedText && data.translatedText !== data.text) {
+                    streamingText.innerHTML = `
+                        <div style="font-size: 1rem; color: #666; margin-bottom: 8px; font-style: italic;">
+                            "${data.text}"
+                        </div>
+                        <div style="font-size: 1.8rem; color: #856404; font-weight: 500;">
+                            ${data.translatedText}
+                        </div>
+                    `;
+                } else {
+                    streamingText.textContent = data.text;
+                }
+                
+                // Update status to show receiving
+                updateStatus(true, true);
+            } else {
+                streamingSection.classList.add('hidden');
+            }
+        }
+
+        function hideStreamingText() {
+            streamingSection.classList.add('hidden');
         }
 
         // Listen for real-time updates from Firebase
         try {
             const liveTextRef = ref(database, 'live_text');
+            const streamingTextRef = ref(database, 'streaming_text');
             
+            // Listen for final translations
             onValue(liveTextRef, (snapshot) => {
                 updateStatus(true);
                 
@@ -464,6 +611,7 @@
                     const data = snapshot.val();
                     updateStatus(true, true);
                     showTranslation(data);
+                    hideStreamingText(); // Hide streaming when final translation arrives
                     
                     // Reset status after showing translation
                     setTimeout(() => {
@@ -475,12 +623,25 @@
             }, (error) => {
                 console.error('Error listening for translations:', error);
                 updateStatus(false);
-                connectionMessage.textContent = 'Error connecting to Firebase';
+                // connectionMessage.textContent = 'Error connecting to Firebase'; // This element is no longer used
+            });
+
+            // Listen for streaming text
+            onValue(streamingTextRef, (snapshot) => {
+                console.log('Streaming data received:', snapshot.val());
+                if (snapshot.exists()) {
+                    const data = snapshot.val();
+                    showStreamingText(data);
+                } else {
+                    hideStreamingText();
+                }
+            }, (error) => {
+                console.error('Error listening for streaming text:', error);
             });
         } catch (error) {
             console.error('Firebase not configured:', error);
             updateStatus(false);
-            connectionMessage.textContent = 'Error connecting to Firebase';
+            // connectionMessage.textContent = 'Error connecting to Firebase'; // This element is no longer used
         }
 
         // Fullscreen functionality
