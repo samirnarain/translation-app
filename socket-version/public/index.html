@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Translation App - Socket.io Version</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #333;
+        }
+
+        .container {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 40px;
+            text-align: center;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(10px);
+            max-width: 500px;
+            width: 90%;
+        }
+
+        .header {
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            color: #666;
+            font-size: 1.1rem;
+        }
+
+        .buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .btn {
+            background: linear-gradient(45deg, #007bff, #0056b3);
+            color: white;
+            text-decoration: none;
+            padding: 15px 30px;
+            border-radius: 25px;
+            font-size: 1.1rem;
+            transition: all 0.3s ease;
+            border: none;
+            cursor: pointer;
+        }
+
+        .btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 25px rgba(0, 123, 255, 0.3);
+        }
+
+        .btn.control {
+            background: linear-gradient(45deg, #28a745, #20c997);
+        }
+
+        .btn.display {
+            background: linear-gradient(45deg, #ffc107, #fd7e14);
+        }
+
+        .status {
+            margin-top: 30px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            border: 1px solid #e9ecef;
+        }
+
+        .status h3 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .status p {
+            color: #666;
+            font-size: 0.9rem;
+        }
+
+        .socket-info {
+            margin-top: 20px;
+            padding: 15px;
+            background: #e3f2fd;
+            border-radius: 10px;
+            border-left: 4px solid #2196f3;
+        }
+
+        .socket-info h4 {
+            color: #1976d2;
+            margin-bottom: 8px;
+        }
+
+        .socket-info ul {
+            text-align: left;
+            color: #666;
+            font-size: 0.9rem;
+        }
+
+        .socket-info li {
+            margin-bottom: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎤 Translation App</h1>
+            <p>Socket.io Version - Real-time Translation</p>
+        </div>
+
+        <div class="buttons">
+            <a href="control.html" class="btn control">
+                🎤 Control Page (Speaker)
+            </a>
+            <a href="display.html" class="btn display">
+                📺 Display Page (Audience)
+            </a>
+        </div>
+
+        <div class="status">
+            <h3>🔗 Connection Status</h3>
+            <p>This version uses Socket.io for real-time communication instead of Firebase.</p>
+        </div>
+
+        <div class="socket-info">
+            <h4>⚡ Socket.io Features:</h4>
+            <ul>
+                <li>✅ Lower latency than Firebase</li>
+                <li>✅ True real-time bidirectional communication</li>
+                <li>✅ Custom server logic</li>
+                <li>✅ Better performance for live streaming</li>
+                <li>⚠️ Requires server hosting (not GitHub Pages compatible)</li>
+            </ul>
+        </div>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        // Test Socket.io connection
+        const socket = io();
+        
+        socket.on('connect', () => {
+            console.log('Connected to Socket.io server');
+        });
+        
+        socket.on('welcome', (data) => {
+            console.log('Welcome message:', data.message);
+        });
+        
+        socket.on('disconnect', () => {
+            console.log('Disconnected from server');
+        });
+    </script>
+</body>
+</html> 

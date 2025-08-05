@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Translation Control - Speaker</title>
+    <title>Translation Control - Socket.io Version</title>
     <style>
         * {
             margin: 0;
@@ -27,27 +27,6 @@
             padding: 20px;
             display: flex;
             flex-direction: column;
-        }
-
-        .main-content {
-            display: flex;
-            flex: 1;
-            gap: 15px;
-            min-height: 0;
-        }
-
-        .left-panel {
-            flex: 2;
-            display: flex;
-            flex-direction: column;
-            gap: 15px;
-        }
-
-        .right-panel {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            gap: 15px;
         }
 
         .header {
@@ -95,6 +74,27 @@
         .nav a.active {
             background: #28a745;
             box-shadow: 0 2px 8px rgba(40, 167, 69, 0.3);
+        }
+
+        .main-content {
+            display: flex;
+            flex: 1;
+            gap: 15px;
+            min-height: 0;
+        }
+
+        .left-panel {
+            flex: 2;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .right-panel {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
         }
 
         .control-card {
@@ -194,11 +194,11 @@
 
         .transcript {
             margin: 15px 0;
-            padding: 15px;
+            padding: 20px;
             background: #f8f9fa;
             border: 1px solid #e9ecef;
             border-radius: 8px;
-            min-height: 80px;
+            min-height: 120px;
             text-align: left;
         }
 
@@ -211,7 +211,7 @@
         .transcript p {
             color: #666;
             line-height: 1.4;
-            font-size: 0.9rem;
+            font-size: 1.1rem;
         }
 
         .error {
@@ -269,21 +269,60 @@
         }
 
         .history-item:nth-child(1) {
-            background: #e3f2fd;
-            border-left-color: #2196f3;
+            background: #1565c0;
+            border-left-color: #0d47a1;
+            color: white;
+        }
+
+        .history-item:nth-child(1) .history-original,
+        .history-item:nth-child(1) .history-translation,
+        .history-item:nth-child(1) .history-timestamp {
+            color: white;
         }
 
         .history-item:nth-child(2) {
-            background: #d4e6f7;
-            border-left-color: #1976d2;
+            background: #1976d2;
+            border-left-color: #1565c0;
+            color: white;
+        }
+
+        .history-item:nth-child(2) .history-original,
+        .history-item:nth-child(2) .history-translation,
+        .history-item:nth-child(2) .history-timestamp {
+            color: white;
         }
 
         .history-item:nth-child(3) {
-            background: #c5daf1;
-            border-left-color: #1565c0;
+            background: #42a5f5;
+            border-left-color: #1976d2;
+            color: white;
         }
 
-        .history-item:nth-child(n+4) {
+        .history-item:nth-child(3) .history-original,
+        .history-item:nth-child(3) .history-translation,
+        .history-item:nth-child(3) .history-timestamp {
+            color: white;
+        }
+
+        .history-item:nth-child(4) {
+            background: #90caf9;
+            border-left-color: #42a5f5;
+            color: #333;
+        }
+
+        .history-item:nth-child(5) {
+            background: #bbdefb;
+            border-left-color: #90caf9;
+            color: #333;
+        }
+
+        .history-item:nth-child(6) {
+            background: #e3f2fd;
+            border-left-color: #bbdefb;
+            color: #333;
+        }
+
+        .history-item:nth-child(n+7) {
             background: #f8f9fa;
             border-left-color: #6c757d;
         }
@@ -317,6 +356,25 @@
             margin-top: 4px;
         }
 
+        .connection-status {
+            background: #e3f2fd;
+            border: 1px solid #2196f3;
+            border-radius: 8px;
+            padding: 10px;
+            margin-top: 15px;
+            text-align: center;
+        }
+
+        .connection-status.connected {
+            background: #d4edda;
+            border-color: #28a745;
+        }
+
+        .connection-status.disconnected {
+            background: #f8d7da;
+            border-color: #dc3545;
+        }
+
         @media (max-width: 768px) {
             .main-content {
                 flex-direction: column;
@@ -332,7 +390,7 @@
     <div class="container">
         <div class="header">
             <h1>🎤 Translation Control</h1>
-            <p>Speak into your microphone to translate in real-time</p>
+            <p>Socket.io Version - Speak into your microphone to translate in real-time</p>
         </div>
 
         <nav class="nav">
@@ -346,16 +404,53 @@
                     <div class="language-selector">
                         <label for="targetLanguage">Translate to:</label>
                         <select id="targetLanguage">
-                            <option value="es">Spanish</option>
-                            <option value="fr">French</option>
-                            <option value="de">German</option>
-                            <option value="it">Italian</option>
-                            <option value="pt">Portuguese</option>
-                            <option value="ru">Russian</option>
-                            <option value="ja">Japanese</option>
-                            <option value="ko">Korean</option>
-                            <option value="zh">Chinese</option>
-                            <option value="ar">Arabic</option>
+                            <option value="sq">🇦🇱 Albanian</option>
+                            <option value="ar">🇸🇦 Arabic</option>
+                            <option value="az">🇦🇿 Azerbaijani</option>
+                            <option value="eu">🇪🇸 Basque</option>
+                            <option value="bn">🇧🇩 Bengali</option>
+                            <option value="bg">🇧🇬 Bulgarian</option>
+                            <option value="ca">🇪🇸 Catalan</option>
+                            <option value="zh-Hans">🇨🇳 Chinese (Simplified)</option>
+                            <option value="zh-Hant">🇹🇼 Chinese (Traditional)</option>
+                            <option value="cs">🇨🇿 Czech</option>
+                            <option value="da">🇩🇰 Danish</option>
+                            <option value="nl" selected>🇳🇱 Dutch</option>
+                            <option value="eo">🏳️ Esperanto</option>
+                            <option value="et">🇪🇪 Estonian</option>
+                            <option value="fi">🇫🇮 Finnish</option>
+                            <option value="fr">🇫🇷 French</option>
+                            <option value="gl">🇪🇸 Galician</option>
+                            <option value="de">🇩🇪 German</option>
+                            <option value="el">🇬🇷 Greek</option>
+                            <option value="he">🇮🇱 Hebrew</option>
+                            <option value="hi">🇮🇳 Hindi</option>
+                            <option value="hu">🇭🇺 Hungarian</option>
+                            <option value="id">🇮🇩 Indonesian</option>
+                            <option value="ga">🇮🇪 Irish</option>
+                            <option value="it">🇮🇹 Italian</option>
+                            <option value="ja">🇯🇵 Japanese</option>
+                            <option value="ko">🇰🇷 Korean</option>
+                            <option value="ky">🇰🇬 Kyrgyz</option>
+                            <option value="lv">🇱🇻 Latvian</option>
+                            <option value="lt">🇱🇹 Lithuanian</option>
+                            <option value="ms">🇲🇾 Malay</option>
+                            <option value="nb">🇳🇴 Norwegian</option>
+                            <option value="fa">🇮🇷 Persian</option>
+                            <option value="pl">🇵🇱 Polish</option>
+                            <option value="pt">🇵🇹 Portuguese</option>
+                            <option value="pt-BR">🇧🇷 Portuguese (Brazil)</option>
+                            <option value="ro">🇷🇴 Romanian</option>
+                            <option value="ru">🇷🇺 Russian</option>
+                            <option value="sk">🇸🇰 Slovak</option>
+                            <option value="sl">🇸🇮 Slovenian</option>
+                            <option value="es">🇪🇸 Spanish</option>
+                            <option value="sv">🇸🇪 Swedish</option>
+                            <option value="tl">🇵🇭 Tagalog</option>
+                            <option value="th">🇹🇭 Thai</option>
+                            <option value="tr">🇹🇷 Turkish</option>
+                            <option value="uk">🇺🇦 Ukrainian</option>
+                            <option value="ur">🇵🇰 Urdu</option>
                         </select>
                     </div>
 
@@ -374,9 +469,8 @@
 
                     <div id="message"></div>
                     
-                    <div style="margin-top: 20px; padding: 15px; background: #d4edda; border: 1px solid #c3e6cb; border-radius: 10px; font-size: 0.9rem; color: #155724;">
-                        <strong>✅ Firebase Connected:</strong> Real-time translation using Firebase Realtime Database. 
-                        Works across multiple devices and browsers!
+                    <div class="connection-status" id="connectionStatus">
+                        <div id="connectionMessage">Connecting to Socket.io server...</div>
                     </div>
                 </div>
             </div>
@@ -390,27 +484,12 @@
         </div>
     </div>
 
-    <!-- Firebase SDK -->
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
-
-        // Firebase configuration
-        const firebaseConfig = {
-            apiKey: "AIzaSyBsVnpr1mc83O6ruDVgfveOuMI5yu-7Q4U",
-            authDomain: "ai-rt-translator.firebaseapp.com",
-            projectId: "ai-rt-translator",
-            storageBucket: "ai-rt-translator.firebasestorage.app",
-            messagingSenderId: "265687581133",
-            appId: "1:265687581133:web:d6a946380c19231e828484",
-            measurementId: "G-585R6F32J2",
-            databaseURL: "https://ai-rt-translator-default-rtdb.europe-west1.firebasedatabase.app"
-        };
-
-        // Initialize Firebase
-        const app = initializeApp(firebaseConfig);
-        const database = getDatabase(app);
-
+    <!-- Socket.io Client -->
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        // Initialize Socket.io connection
+        const socket = io();
+        
         // DOM elements
         const micButton = document.getElementById('micButton');
         const status = document.getElementById('status');
@@ -418,13 +497,51 @@
         const message = document.getElementById('message');
         const targetLanguage = document.getElementById('targetLanguage');
         const controlHistory = document.getElementById('controlHistory');
+        const connectionStatus = document.getElementById('connectionStatus');
+        const connectionMessage = document.getElementById('connectionMessage');
 
         // Store translation history for control page
         let controlHistoryArray = [];
-
         let recognition;
         let isListening = false;
         let currentSessionId = null;
+
+        // Socket.io connection handling
+        socket.on('connect', () => {
+            console.log('Connected to Socket.io server');
+            connectionStatus.className = 'connection-status connected';
+            connectionMessage.textContent = 'Connected to Socket.io server';
+            
+            // Identify as control client
+            socket.emit('client-type', 'control');
+        });
+
+        socket.on('disconnect', () => {
+            console.log('Disconnected from server');
+            connectionStatus.className = 'connection-status disconnected';
+            connectionMessage.textContent = 'Disconnected from server';
+        });
+
+        socket.on('text-received', (data) => {
+            console.log('Streaming text sent successfully:', data.message);
+        });
+
+        socket.on('translation-received', (data) => {
+            console.log('Final translation sent successfully:', data.message);
+            status.textContent = 'Translation sent!';
+            status.className = 'status sent';
+            message.innerHTML = '<div class="success">Translation sent successfully!</div>';
+
+            setTimeout(() => {
+                status.textContent = 'Click the microphone to start translating';
+                status.className = 'status';
+                message.innerHTML = '';
+            }, 2000);
+        });
+
+        socket.on('client-count', (data) => {
+            console.log('Connected clients:', data.count);
+        });
 
         // Initialize speech recognition
         function initSpeechRecognition() {
@@ -440,12 +557,9 @@
                     micButton.classList.add('listening');
                     status.textContent = 'Listening... Speak now!';
                     status.className = 'status recording';
-                    
-                    // Clear any previous streaming data
-                    set(ref(database, 'streaming_text'), null);
                 };
 
-                recognition.onresult = (event) => {
+                recognition.onresult = async (event) => {
                     let finalTranscript = '';
                     let interimTranscript = '';
 
@@ -464,7 +578,8 @@
                     console.log('Speech detected:', { interimTranscript, finalTranscript, streamingText });
                     
                     if (streamingText && streamingText.trim()) {
-                        const translatedStreamingText = translateText(streamingText, targetLanguage.value);
+                        // Use server-side translation for streaming text
+                        const translatedStreamingText = await translateText(streamingText, targetLanguage.value);
                         
                         const streamingData = {
                             text: streamingText,
@@ -475,10 +590,10 @@
                             targetLanguage: targetLanguage.value
                         };
 
-                        console.log('Sending streaming data:', streamingData);
+                        console.log('Sending streaming data via Socket.io:', streamingData);
                         
-                        // Send streaming data immediately
-                        set(ref(database, 'streaming_text'), streamingData);
+                        // Send via Socket.io
+                        socket.emit('streaming-text', streamingData);
                     }
 
                     if (finalTranscript) {
@@ -497,8 +612,6 @@
 
                 recognition.onend = () => {
                     stopListening();
-                    // Clear streaming data when session ends
-                    set(ref(database, 'streaming_text'), null);
                 };
             } else {
                 message.innerHTML = '<div class="error">Speech recognition not supported in this browser. Please use Chrome.</div>';
@@ -512,62 +625,35 @@
             status.className = 'status';
         }
 
-        function translateText(text, targetLang) {
+        async function translateText(text, targetLang) {
             if (!text.trim()) return text;
 
-            const translations = {
-                'es': {
-                    'hello': 'hola',
-                    'how are you': 'cómo estás',
-                    'thank you': 'gracias',
-                    'goodbye': 'adiós',
-                    'good morning': 'buenos días',
-                    'good night': 'buenas noches',
-                    'yes': 'sí',
-                    'no': 'no',
-                    'please': 'por favor',
-                    'sorry': 'lo siento'
-                },
-                'fr': {
-                    'hello': 'bonjour',
-                    'how are you': 'comment allez-vous',
-                    'thank you': 'merci',
-                    'goodbye': 'au revoir',
-                    'good morning': 'bonjour',
-                    'good night': 'bonne nuit',
-                    'yes': 'oui',
-                    'no': 'non',
-                    'please': 's\'il vous plaît',
-                    'sorry': 'désolé'
-                },
-                'de': {
-                    'hello': 'hallo',
-                    'how are you': 'wie geht es dir',
-                    'thank you': 'danke',
-                    'goodbye': 'auf wiedersehen',
-                    'good morning': 'guten morgen',
-                    'good night': 'gute nacht',
-                    'yes': 'ja',
-                    'no': 'nein',
-                    'please': 'bitte',
-                    'sorry': 'entschuldigung'
-                }
-            };
+            try {
+                const response = await fetch('/translate', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        text: text,
+                        source: 'en',
+                        target: targetLang,
+                        format: 'text',
+                        alternatives: 3
+                    })
+                });
 
-            if (translations[targetLang]) {
-                const lowerText = text.toLowerCase();
-                let translatedText = text;
-                
-                for (const [english, translation] of Object.entries(translations[targetLang])) {
-                    if (lowerText.includes(english)) {
-                        translatedText = text.replace(new RegExp(english, 'gi'), translation);
-                        break;
-                    }
+                if (!response.ok) {
+                    throw new Error(`Translation failed: ${response.status}`);
                 }
-                return translatedText;
+
+                const data = await response.json();
+                return data.translatedText;
+            } catch (error) {
+                console.error('Translation error:', error);
+                // Fallback to original text
+                return text;
             }
-            
-            return text;
         }
 
         async function translateAndSend(text) {
@@ -577,101 +663,30 @@
             status.className = 'status translating';
 
             try {
-                // For this prototype, we'll use a simple translation mapping
-                // In a real app, you'd use Google Translate API or similar
-                const translations = {
-                    'es': {
-                        'hello': 'hola',
-                        'how are you': 'cómo estás',
-                        'thank you': 'gracias',
-                        'goodbye': 'adiós',
-                        'good morning': 'buenos días',
-                        'good night': 'buenas noches'
-                    },
-                    'fr': {
-                        'hello': 'bonjour',
-                        'how are you': 'comment allez-vous',
-                        'thank you': 'merci',
-                        'goodbye': 'au revoir',
-                        'good morning': 'bonjour',
-                        'good night': 'bonne nuit'
-                    },
-                    'de': {
-                        'hello': 'hallo',
-                        'how are you': 'wie geht es dir',
-                        'thank you': 'danke',
-                        'goodbye': 'auf wiedersehen',
-                        'good morning': 'guten morgen',
-                        'good night': 'gute nacht'
-                    }
-                };
-
                 const targetLang = targetLanguage.value;
-                let translatedText = text;
+                
+                // Use server-side translation
+                const translatedText = await translateText(text, targetLang);
 
-                if (translations[targetLang]) {
-                    const lowerText = text.toLowerCase();
-                    for (const [english, translation] of Object.entries(translations[targetLang])) {
-                        if (lowerText.includes(english)) {
-                            translatedText = text.replace(new RegExp(english, 'gi'), translation);
-                            break;
-                        }
-                    }
-                }
-
-                // Send to Firebase Realtime Database
-                await set(ref(database, 'live_text'), {
+                // Send via Socket.io
+                const translationData = {
                     original: text,
                     translated: translatedText,
                     targetLanguage: targetLang,
                     timestamp: Date.now()
-                });
+                };
 
-                status.textContent = 'Translation sent!';
-                status.className = 'status sent';
-                message.innerHTML = '<div class="success">Translation sent successfully!</div>';
+                socket.emit('final-translation', translationData);
 
-                setTimeout(() => {
-                    status.textContent = 'Click the microphone to start translating';
-                    status.className = 'status';
-                    message.innerHTML = '';
-                }, 2000);
+                // Add to local history
+                addToControlHistory(translationData);
 
             } catch (error) {
                 console.error('Error sending translation:', error);
-                message.innerHTML = '<div class="error">Error sending translation. Please check your Firebase configuration.</div>';
+                message.innerHTML = '<div class="error">Error sending translation. Please check your connection.</div>';
                 status.textContent = 'Error occurred';
                 status.className = 'status';
             }
-        }
-
-        // Event listeners
-        micButton.addEventListener('click', () => {
-            if (!isListening) {
-                if (recognition) {
-                    recognition.start();
-                } else {
-                    message.innerHTML = '<div class="error">Speech recognition not available. Please use Chrome browser.</div>';
-                }
-            } else {
-                recognition.stop();
-            }
-        });
-
-        // Listen for translations from Firebase
-        try {
-            const liveTextRef = ref(database, 'live_text');
-            
-            onValue(liveTextRef, (snapshot) => {
-                if (snapshot.exists()) {
-                    const data = snapshot.val();
-                    addToControlHistory(data);
-                }
-            }, (error) => {
-                console.error('Error listening for translations:', error);
-            });
-        } catch (error) {
-            console.error('Firebase not configured:', error);
         }
 
         function addToControlHistory(data) {
@@ -720,6 +735,19 @@
             
             controlHistory.innerHTML = historyHTML;
         }
+
+        // Event listeners
+        micButton.addEventListener('click', () => {
+            if (!isListening) {
+                if (recognition) {
+                    recognition.start();
+                } else {
+                    message.innerHTML = '<div class="error">Speech recognition not available. Please use Chrome browser.</div>';
+                }
+            } else {
+                recognition.stop();
+            }
+        });
 
         // Initialize
         initSpeechRecognition();
