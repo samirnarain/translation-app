@@ -6,7 +6,6 @@ A real-time translation system using Socket.io for ultra-low latency communicati
 
 ### 1. Install Dependencies
 ```bash
-cd socket-version
 npm install
 ```
 
@@ -63,6 +62,8 @@ npm test
 - ✅ **Real-time streaming**: Shows live translation as user speaks
 - ✅ **Translation history**: Maintains history with color-coded entries
 - ✅ **Flag emojis**: Visual language identification with country flags
+- ✅ **Dynamic language selection**: Input language selection with smart defaults
+- ✅ **API-driven combinations**: Real LibreTranslate API language combinations
 
 ## 🎨 UI/UX Features
 
@@ -73,8 +74,8 @@ npm test
 - ✅ **Real-time indicators**: Connection status and streaming indicators
 - ✅ **Responsive design**: Works on desktop, tablet, and mobile
 - ✅ **Fullscreen mode**: Presentation-ready display page
-- ✅ **Alphabetized languages**: Easy-to-find language selection
-- ✅ **Dutch default**: Pre-selected Dutch language for convenience
+- ✅ **Dynamic language dropdowns**: Populated from actual API data
+- ✅ **Smart defaults**: English input → Dutch output, others → English output
 
 ### **Translation Display:**
 - ✅ **Live streaming**: 25% size ratio for prominent live translation
@@ -93,6 +94,7 @@ npm test
 - ✅ **Error handling**: Graceful fallback to original text with detailed logging
 - ✅ **Form-encoded API**: Proper LibreTranslate API integration
 - ✅ **Statistics tracking**: Monitor success rates, response times, and cache hits
+- ✅ **API-driven combinations**: Real-time language combination validation
 
 ### **API Endpoints:**
 - `POST /translate` - Translate text via LibreTranslate
@@ -100,7 +102,16 @@ npm test
 - `POST /clear-cache` - Clear translation cache
 - `GET /health` - Server health check with client count and uptime
 
+### **Language Selection Logic:**
+- **Default Input Language**: English
+- **Default Output Language**: 
+  - When English is input → Dutch output
+  - When any other language is input → English output
+- **Dynamic Validation**: Only shows valid language combinations from LibreTranslate API
+
 ### **Supported Languages (48 total):**
+- **en**: English (default input)
+- **nl**: Dutch (default output for English)
 - **es**: Spanish
 - **fr**: French
 - **de**: German
@@ -112,7 +123,6 @@ npm test
 - **zh-Hans**: Chinese (Simplified)
 - **zh-Hant**: Chinese (Traditional)
 - **ar**: Arabic
-- **nl**: Dutch
 - **pl**: Polish
 - **tr**: Turkish
 - **th**: Thai
@@ -167,6 +177,7 @@ npm test
 5. **Translation history**: Local history with color-coded entries
 6. **Flag emojis**: Visual language selection with country flags
 7. **Connection status**: Real-time connection indicators
+8. **Dynamic language selection**: Input language selection with smart defaults
 
 ### **Display Page:**
 1. **Socket.io client**: Listens for real-time updates
@@ -198,170 +209,51 @@ socket.on('custom-event', (data) => {
 });
 
 // Client
-socket.emit('custom-event', data);
 socket.on('custom-event', (data) => {
-  // Handle event
+  // Handle custom event
 });
 ```
 
-### **Adding Authentication:**
-```javascript
-// Server
-io.use((socket, next) => {
-  const token = socket.handshake.auth.token;
-  if (validateToken(token)) {
-    next();
-  } else {
-    next(new Error('Authentication error'));
-  }
-});
-```
-
-### **Adding Rooms:**
-```javascript
-// Server
-socket.on('join-room', (room) => {
-  socket.join(room);
-});
-
-socket.on('room-message', (data) => {
-  socket.to(data.room).emit('message', data);
-});
-```
-
-## 🚀 Deployment Options
-
-### **1. Heroku:**
+### **Environment Variables:**
 ```bash
-# Add to package.json
-"engines": {
-  "node": "18.x"
-}
-
-# Deploy
-heroku create your-app-name
-git push heroku main
+# LibreTranslate configuration
+LIBRETRANSLATE_URL=http://127.0.0.1:5000
+LIBRETRANSLATE_API_KEY=your_api_key_here
 ```
 
-### **2. Railway:**
-```bash
-# Connect GitHub repo
-# Railway auto-deploys
-```
-
-### **3. DigitalOcean:**
-```bash
-# Create droplet
-# Install Node.js
-# Use PM2 for process management
-pm2 start server.js
-```
-
-### **4. Vercel:**
-```bash
-# Create vercel.json
-{
-  "version": 2,
-  "builds": [
-    {
-      "src": "server.js",
-      "use": "@vercel/node"
-    }
-  ],
-  "routes": [
-    {
-      "src": "/(.*)",
-      "dest": "server.js"
-    }
-  ]
-}
-```
+### **Language Combinations:**
+The app automatically fetches and validates language combinations from the LibreTranslate API. The `public/language-combinations.js` file contains the current supported combinations and is updated automatically.
 
 ## 🔒 Security Considerations
 
+### **API Key Management:**
+- API keys are stored in environment variables
+- No hardcoded secrets in the codebase
+- `.env` files are properly gitignored
+
+### **CORS Configuration:**
+- CORS is enabled for development
+- Should be restricted to specific domains in production
+
+### **Input Validation:**
+- All translation requests are validated
+- Text length and format are checked
+- Error handling prevents crashes
+
+## 🚀 Deployment
+
+### **Requirements:**
+- Node.js 16+ 
+- LibreTranslate server running
+- Environment variables configured
+
 ### **Production Setup:**
-1. **Environment variables**: Store sensitive data
-2. **HTTPS**: Use SSL certificates
-3. **Rate limiting**: Prevent abuse
-4. **Input validation**: Sanitize user input
-5. **Authentication**: Add user login system
+1. Set up environment variables
+2. Configure CORS for your domain
+3. Set up proper logging
+4. Configure SSL/TLS
+5. Set up monitoring and health checks
 
-### **Example Security:**
-```javascript
-// server.js
-const rateLimit = require('express-rate-limit');
-const helmet = require('helmet');
+## 📝 License
 
-app.use(helmet());
-app.use(rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100 // limit each IP to 100 requests per windowMs
-}));
-```
-
-## 📈 Monitoring
-
-### **Health Check:**
-```bash
-curl http://localhost:3000/health
-# Returns: {"status":"ok","clients":2,"uptime":123.45}
-```
-
-### **Server Logs:**
-```bash
-# View real-time logs
-tail -f logs/app.log
-
-# Monitor connections
-console.log('Client connected:', socket.id);
-console.log('Total clients:', clients.size);
-```
-
-## 🎯 Use Cases
-
-### **Perfect For:**
-- ✅ **High-frequency updates**: Gaming, chat
-- ✅ **Custom server logic**: Business rules
-- ✅ **User management**: Authentication, profiles
-- ✅ **Real-time analytics**: Live data tracking
-- ✅ **Multi-room support**: Separate sessions
-
-### **Not Ideal For:**
-- ❌ **Static hosting**: GitHub Pages, Netlify
-- ❌ **Simple apps**: Overkill for basic features
-- ❌ **Budget constraints**: Server hosting costs
-- ❌ **Quick prototypes**: More setup required
-
-## 🔄 Migration from Firebase
-
-### **Key Differences:**
-1. **Connection**: WebSocket vs HTTP
-2. **Events**: Custom events vs Firebase paths
-3. **Deployment**: Server vs static hosting
-4. **Scaling**: Manual vs Firebase auto-scaling
-
-### **Code Changes:**
-```javascript
-// Firebase
-set(ref(database, 'live_text'), data);
-
-// Socket.io
-socket.emit('final-translation', data);
-```
-
-## 🚀 Next Steps
-
-1. **Speech quality improvements**: Text cleaning, pause detection, confidence filtering
-2. **Add authentication**: User login system with JWT tokens
-3. **Implement rooms**: Separate translation sessions for different groups
-4. **Add persistence**: Database for translation history and user preferences
-5. **Scale horizontally**: Multiple server instances with load balancing
-6. **Add monitoring**: Performance metrics and alerting
-7. **Implement SSL**: HTTPS for production with proper certificates
-8. **Mobile optimization**: Progressive Web App (PWA) features
-
----
-
-**Built with Socket.io for ultra-low latency real-time communication**
-
-*This version provides the best performance for real-time translation applications.* 
+MIT License - see LICENSE file for details. 

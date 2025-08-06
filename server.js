@@ -16,6 +16,8 @@ app.use(express.json());
 // Serve static files from public directory
 app.use(express.static(path.join(__dirname, 'public')));
 
+
+
 // Create HTTP server
 const server = http.createServer(app);
 

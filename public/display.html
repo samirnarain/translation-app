@@ -518,52 +518,53 @@
 
         // Language names mapping
         const languageNames = {
-            'sq': '🇦🇱 Albanian',
+            'en': '🇺🇸 English',
+            'fr': '🇫🇷 French',
+            'de': '🇩🇪 German',
+            'es': '🇪🇸 Spanish',
+            'it': '🇮🇹 Italian',
+            'pt': '🇵🇹 Portuguese',
+            'pt-BR': '🇧🇷 Portuguese (Brazil)',
+            'ru': '🇷🇺 Russian',
+            'zh-Hans': '🇨🇳 Chinese (Simplified)',
+            'zh-Hant': '🇹🇼 Chinese (Traditional)',
+            'ja': '🇯🇵 Japanese',
+            'ko': '🇰🇷 Korean',
             'ar': '🇸🇦 Arabic',
+            'hi': '🇮🇳 Hindi',
+            'th': '🇹🇭 Thai',
+            'tr': '🇹🇷 Turkish',
+            'nl': '🇳🇱 Dutch',
+            'pl': '🇵🇱 Polish',
+            'cs': '🇨🇿 Czech',
+            'sv': '🇸🇪 Swedish',
+            'da': '🇩🇰 Danish',
+            'fi': '🇫🇮 Finnish',
+            'nb': '🇳🇴 Norwegian',
+            'he': '🇮🇱 Hebrew',
+            'id': '🇮🇩 Indonesian',
+            'uk': '🇺🇦 Ukrainian',
+            'sq': '🇦🇱 Albanian',
             'az': '🇦🇿 Azerbaijani',
             'eu': '🇪🇸 Basque',
             'bn': '🇧🇩 Bengali',
             'bg': '🇧🇬 Bulgarian',
             'ca': '🇪🇸 Catalan',
-            'zh-Hans': '🇨🇳 Chinese (Simplified)',
-            'zh-Hant': '🇹🇼 Chinese (Traditional)',
-            'cs': '🇨🇿 Czech',
-            'da': '🇩🇰 Danish',
-            'nl': '🇳🇱 Dutch',
             'eo': '🏳️ Esperanto',
             'et': '🇪🇪 Estonian',
-            'fi': '🇫🇮 Finnish',
-            'fr': '🇫🇷 French',
             'gl': '🇪🇸 Galician',
-            'de': '🇩🇪 German',
             'el': '🇬🇷 Greek',
-            'he': '🇮🇱 Hebrew',
-            'hi': '🇮🇳 Hindi',
             'hu': '🇭🇺 Hungarian',
-            'id': '🇮🇩 Indonesian',
             'ga': '🇮🇪 Irish',
-            'it': '🇮🇹 Italian',
-            'ja': '🇯🇵 Japanese',
-            'ko': '🇰🇷 Korean',
             'ky': '🇰🇬 Kyrgyz',
             'lv': '🇱🇻 Latvian',
             'lt': '🇱🇹 Lithuanian',
             'ms': '🇲🇾 Malay',
-            'nb': '🇳🇴 Norwegian',
             'fa': '🇮🇷 Persian',
-            'pl': '🇵🇱 Polish',
-            'pt': '🇵🇹 Portuguese',
-            'pt-BR': '🇧🇷 Portuguese (Brazil)',
             'ro': '🇷🇴 Romanian',
-            'ru': '🇷🇺 Russian',
             'sk': '🇸🇰 Slovak',
             'sl': '🇸🇮 Slovenian',
-            'es': '🇪🇸 Spanish',
-            'sv': '🇸🇪 Swedish',
             'tl': '🇵🇭 Tagalog',
-            'th': '🇹🇭 Thai',
-            'tr': '🇹🇷 Turkish',
-            'uk': '🇺🇦 Ukrainian',
             'ur': '🇵🇰 Urdu'
         };
 
@@ -641,7 +642,9 @@
 
             originalText.textContent = `"${data.original}"`;
             translationText.textContent = data.translated;
-            languageBadge.textContent = `Translated to ${languageNames[data.targetLanguage] || data.targetLanguage}`;
+            const sourceLangName = languageNames[data.sourceLanguage] || data.sourceLanguage;
+            const targetLangName = languageNames[data.targetLanguage] || data.targetLanguage;
+            languageBadge.textContent = `${sourceLangName} → ${targetLangName}`;
 
             // Add to history
             addToHistory(data);
