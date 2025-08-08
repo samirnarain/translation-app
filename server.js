@@ -28,18 +28,67 @@ const io = socketIo(server, {
     methods: ["GET", "POST"]
   }
 });
+const crypto = require('crypto');
+
+// Redis & adapter (Phase A)
+let redisClient = null;
+let pubClient = null;
+let subClient = null;
+async function setupRedis() {
+  try {
+    const { createClient } = require('redis');
+    const { createAdapter } = require('@socket.io/redis-adapter');
+    const REDIS_URL = process.env.REDIS_URL || 'redis://127.0.0.1:6379';
+    pubClient = createClient({ url: REDIS_URL });
+    subClient = pubClient.duplicate();
+    redisClient = createClient({ url: REDIS_URL });
+    await Promise.all([pubClient.connect(), subClient.connect(), redisClient.connect()]);
+    io.adapter(createAdapter(pubClient, subClient));
+    console.log('✅ Redis connected and Socket.io adapter configured');
+  } catch (err) {
+    console.warn('⚠️ Redis not available, running in single-instance mode:', err.message);
+  }
+}
 
 // Store connected clients
 const clients = new Map();
 
-// In-memory sessions (Stage 1-3 MVP)
-// sessions: code(string) -> { code, controlSocketId, createdAt, ttlMs, stale, expireTimer }
-const sessions = new Map();
-// socket mapping: socketId -> { code, role: 'control' | 'display' }
-const socketToSession = new Map();
+// Sessions with Redis backing where available (Phase A)
+const sessions = new Map(); // fallback cache (non-authoritative)
+function randomToken(len = 32) {
+  return crypto.randomBytes(Math.ceil(len / 2)).toString('hex').slice(0, len);
+}
 
-const SESSION_TTL_MS = 60 * 60 * 1000; // 60 minutes
+async function storeResumeToken(code, token, ttlMs) {
+  try {
+    if (redisClient) {
+      const key = `sess:${code}:resume:${token}`;
+      await redisClient.set(key, '1', { PX: ttlMs });
+    }
+  } catch {}
+}
+
+async function validateResumeToken(code, token) {
+  try {
+    if (redisClient) {
+      const key = `sess:${code}:resume:${token}`;
+      const v = await redisClient.get(key);
+      if (v) {
+        await redisClient.del(key);
+        return true;
+      }
+      return false;
+    }
+  } catch {}
+  // fallback: allow if no redis
+  return true;
+}
+const socketToSession = new Map(); // ephemeral mapping
+
+const SESSION_TTL_MS = 60 * 60 * 1000; // 60 minutes (hard TTL)
+const IDLE_TTL_MS = 30 * 60 * 1000;    // 30 minutes when no control/co-host
 const STALE_GRACE_MS = 5 * 60 * 1000;  // 5 minutes to allow control resume
+const EXPIRING_NOTICE_MS = 5 * 60 * 1000; // emit expiring event 5m before expiry
 
 function generateSessionCode() {
   // 9-digit numeric, zero-padded
@@ -51,6 +100,33 @@ function generateSessionCode() {
   return code;
 }
 
+function updateSessionExpiry(code, ttlMs) {
+  const s = sessions.get(code);
+  if (!s) return;
+  // clear existing timers
+  if (s.expireTimer) clearTimeout(s.expireTimer);
+  if (s.expiringTimer) clearTimeout(s.expiringTimer);
+  const now = Date.now();
+  s.createdAt = s.createdAt || now;
+  s.ttlMs = ttlMs;
+  s.stale = false;
+  // schedule expiring notice
+  if (ttlMs > EXPIRING_NOTICE_MS) {
+    s.expiringTimer = setTimeout(() => {
+      io.to(`sess:${code}`).emit('session-expiring', { code, inMs: EXPIRING_NOTICE_MS });
+    }, ttlMs - EXPIRING_NOTICE_MS);
+  }
+  // schedule expiry
+  s.expireTimer = setTimeout(() => expireSession(code), ttlMs);
+  try {
+    if (redisClient) {
+      const key = `sess:${code}`;
+      redisClient.expire(key, Math.ceil(ttlMs / 1000));
+      redisClient.hSet(key, { status: 'active' });
+    }
+  } catch {}
+}
+
 function createSession(controlSocketId) {
   const code = generateSessionCode();
   const session = {
@@ -59,9 +135,31 @@ function createSession(controlSocketId) {
     createdAt: Date.now(),
     ttlMs: SESSION_TTL_MS,
     stale: false,
-    expireTimer: setTimeout(() => expireSession(code), SESSION_TTL_MS)
+    expireTimer: null,
+    expiringTimer: null
   };
   sessions.set(code, session);
+  updateSessionExpiry(code, SESSION_TTL_MS);
+  // persist to Redis
+  try {
+    if (redisClient) {
+      const key = `sess:${code}`;
+      redisClient.hSet(key, {
+        code,
+        controlSocketId,
+        createdAt: String(session.createdAt),
+        ttlMs: String(session.ttlMs),
+        status: 'active'
+      });
+      redisClient.expire(key, Math.ceil(SESSION_TTL_MS / 1000));
+      // add presence
+      redisClient.sAdd(`sess:${code}:presence`, controlSocketId);
+    }
+  } catch {}
+  // create a resume token for control
+  const token = randomToken(24);
+  storeResumeToken(code, token, STALE_GRACE_MS);
+  session.controlResumeToken = token;
   return session;
 }
 
@@ -71,6 +169,7 @@ function expireSession(code) {
   sessions.delete(code);
   // notify room if needed
   io.to(`sess:${code}`).emit('session-closed', { code });
+  try { if (redisClient) redisClient.del(`sess:${code}`); } catch {}
 }
 
 function markSessionStale(code) {
@@ -79,6 +178,11 @@ function markSessionStale(code) {
   s.stale = true;
   io.to(`sess:${code}`).emit('session-stale', { code });
   // keep existing TTL; optionally set an earlier grace expiry
+  try {
+    if (redisClient) {
+      redisClient.hSet(`sess:${code}`, { status: 'stale' });
+    }
+  } catch {}
 }
 
 // Translation cache
@@ -225,7 +329,7 @@ io.on('connection', (socket) => {
       socket.join(room);
       socketToSession.set(socket.id, { code: session.code, role: 'control' });
       clients.set(socket.id, { type: 'control', connectedAt: Date.now() });
-      const payload = { code: session.code, ttlMs: session.ttlMs, expiresAt: session.createdAt + session.ttlMs };
+      const payload = { code: session.code, ttlMs: session.ttlMs, expiresAt: session.createdAt + session.ttlMs, resumeToken: session.controlResumeToken };
       if (typeof ack === 'function') ack({ ok: true, ...payload });
       socket.emit('session-created', payload);
     } catch (e) {
@@ -233,8 +337,8 @@ io.on('connection', (socket) => {
     }
   });
 
-  socket.on('session-resume', (data = {}, ack) => {
-    const { code } = data;
+  socket.on('session-resume', async (data = {}, ack) => {
+    const { code, token } = data;
     const session = code ? sessions.get(code) : null;
     if (!session) return ack && ack({ ok: false, error: 'not_found' });
     if (Date.now() > session.createdAt + session.ttlMs) return ack && ack({ ok: false, error: 'expired' });
@@ -242,12 +346,22 @@ io.on('connection', (socket) => {
     if (session.controlSocketId && session.controlSocketId !== socket.id) {
       return ack && ack({ ok: false, error: 'already_has_control' });
     }
+    // if redis present, require valid resume token
+    if (redisClient) {
+      const valid = await validateResumeToken(code, token);
+      if (!valid) return ack && ack({ ok: false, error: 'invalid_token' });
+    }
     session.controlSocketId = socket.id;
     session.stale = false;
     socket.join(`sess:${code}`);
     socketToSession.set(socket.id, { code, role: 'control' });
     clients.set(socket.id, { type: 'control', connectedAt: Date.now() });
-    ack && ack({ ok: true, code, ttlMs: session.ttlMs, expiresAt: session.createdAt + session.ttlMs });
+    updateSessionExpiry(code, SESSION_TTL_MS);
+    try { if (redisClient) redisClient.sAdd(`sess:${code}:presence`, socket.id); } catch {}
+    // issue a new resume token on successful resume
+    const newToken = randomToken(24);
+    storeResumeToken(code, newToken, STALE_GRACE_MS);
+    ack && ack({ ok: true, code, ttlMs: session.ttlMs, expiresAt: session.createdAt + session.ttlMs, resumeToken: newToken });
     io.to(`sess:${code}`).emit('session-resumed', { code });
   });
 
@@ -264,6 +378,7 @@ io.on('connection', (socket) => {
     socket.join(`sess:${code}`);
     socketToSession.set(socket.id, { code, role: 'display' });
     clients.set(socket.id, { type: 'display', connectedAt: Date.now() });
+    try { if (redisClient) redisClient.sAdd(`sess:${code}:displays`, socket.id); } catch {}
     ack && ack({ ok: true, code });
     if (session.controlSocketId) io.to(session.controlSocketId).emit('display-joined', { socketId: socket.id });
   });
@@ -357,12 +472,14 @@ io.on('connection', (socket) => {
         if (s) {
           s.controlSocketId = null;
           markSessionStale(code);
-          // allow displays to keep listening for resume
-          setTimeout(() => {
-            const still = sessions.get(code);
-            if (still && !still.controlSocketId) expireSession(code);
-          }, STALE_GRACE_MS);
+          // switch to idle TTL for displays-only window
+          updateSessionExpiry(code, IDLE_TTL_MS);
         }
+        // Redis presence update
+        try { if (redisClient) redisClient.sRem(`sess:${code}:presence`, socket.id); } catch {}
+      }
+      if (role === 'display') {
+        try { if (redisClient) redisClient.sRem(`sess:${code}:displays`, socket.id); } catch {}
       }
     }
     clients.delete(socket.id);
@@ -390,6 +507,27 @@ app.get('/health', (req, res) => {
   });
 });
 
+// Debug session endpoint (limited info; expand behind auth in production)
+app.get('/session/:code', async (req, res) => {
+  const code = (req.params.code || '').replace(/\D/g, '');
+  const local = sessions.get(code);
+  let redisData = null;
+  try {
+    if (redisClient) {
+      const key = `sess:${code}`;
+      const h = await redisClient.hGetAll(key);
+      const presence = await redisClient.sCard(`sess:${code}:presence`);
+      const displays = await redisClient.sCard(`sess:${code}:displays`);
+      redisData = { ...h, presence, displays };
+    }
+  } catch {}
+  res.json({
+    code,
+    local: local ? { code: local.code, stale: local.stale, ttlMs: local.ttlMs, createdAt: local.createdAt } : null,
+    redis: redisData
+  });
+});
+
 // Serve main page
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
@@ -405,4 +543,5 @@ server.listen(PORT, HOST, () => {
   console.log(`📊 Translation stats: http://localhost:${PORT}/translation-stats`);
   console.log(`🔧 LibreTranslate URL: ${LIBRETRANSLATE_URL}`);
   console.log(`🔑 API Key configured: ${LIBRETRANSLATE_API_KEY ? 'Yes' : 'No'}`);
+  setupRedis();
 });
