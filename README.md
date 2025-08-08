@@ -18,6 +18,26 @@ pip install libretranslate
 libretranslate
 ```
 
+### 2b. Start Redis (optional but recommended)
+Use Redis for session persistence and horizontal scaling. If Redis isn’t running, the app falls back to in-memory sessions and you may see a log like: "Redis not available, running in single-instance mode".
+
+```bash
+# macOS (Homebrew)
+brew install redis            # if not installed
+brew services start redis     # start as a background service
+# or: redis-server
+
+# Ubuntu/Debian
+sudo apt update && sudo apt install -y redis-server
+sudo systemctl enable --now redis-server
+
+# Docker (any OS)
+docker run --name translation-redis -p 6379:6379 -d redis:7
+
+# Verify
+redis-cli ping   # should output: PONG
+```
+
 ### 3. Start the Socket.io Server
 ```bash
 npm start
@@ -250,6 +270,11 @@ The app automatically fetches and validates language combinations from the Libre
 - Session persistence: Control stores `controlSessionCode` + short-lived `resumeToken` in `localStorage` to resume the same session across refresh/reconnect
 - Example Redis keys: `sess:<code>` (hash), `sess:<code>:presence` (set), `sess:<code>:displays` (set), `sess:<code>:resume:<token>` (string with TTL)
 - Expiry & stale handling: TTL-based expiration with groundwork for warnings and rolling extension when active
+
+#### Redis notes
+- Default connection: `127.0.0.1:6379`
+- If Redis is not reachable, the server logs a warning and runs with in-memory sessions
+- To inspect data: `redis-cli` → `KEYS sess:*` or `SCAN 0 MATCH sess:* COUNT 100`, then `HGETALL sess:<code>`
 
 ## 🔒 Security Considerations
 
