@@ -35,6 +35,12 @@ npm test
 - **Control page**: http://localhost:3000/control.html
 - **Display page**: http://localhost:3000/display.html
 
+### 6. Optional: HTTPS via ngrok
+```bash
+ngrok http 3000
+# Use the HTTPS URL ngrok provides
+```
+
 ## ⚡ Socket.io Features
 
 ### **Performance Benefits:**
@@ -64,6 +70,9 @@ npm test
 - ✅ **Flag emojis**: Visual language identification with country flags
 - ✅ **Dynamic language selection**: Input language selection with smart defaults
 - ✅ **API-driven combinations**: Real LibreTranslate API language combinations
+- ✅ **ASR confidence UI**: Numeric confidence on Control; High/Medium/Low on Display
+- ✅ **Emoji indicators**: 🟢/🟠/🔴 mapped to high/medium/low ASR confidence
+- ✅ **Seamless language switching**: Debounced stop/restart of ASR when input language changes
 
 ## 🎨 UI/UX Features
 
@@ -83,6 +92,7 @@ npm test
 - ✅ **History progression**: Newest entries with darkest blue, fading to gray
 - ✅ **15-second persistence**: Live text stays visible for reading
 - ✅ **Timestamp tracking**: Accurate time stamps for all translations
+- ✅ **Join code UX**: Read-only after join, with "Change code" to switch sessions
 
 ## 🌐 LibreTranslate Integration
 
@@ -108,6 +118,7 @@ npm test
   - When English is input → Dutch output
   - When any other language is input → English output
 - **Dynamic Validation**: Only shows valid language combinations from LibreTranslate API
+- **Runtime switching**: If mic is on, switching input language aborts and auto-restarts recognition with the new language; if mic is off, the language is applied immediately with a brief status notice
 
 ### **Supported Languages (48 total):**
 - **en**: English (default input)
@@ -168,6 +179,8 @@ npm test
 4. **Event handling**: Processes streaming and final translations
 5. **Broadcasting**: Sends to all connected clients with acknowledgments
 6. **Statistics tracking**: Monitors performance and cache efficiency
+7. **Sessions & rooms**: In-memory sessions with 9-digit numeric codes; Socket.io rooms per session
+8. **Role enforcement**: Only the Control of a session can broadcast translations to its room
 
 ### **Control Page:**
 1. **Speech recognition**: Web Speech API with interim and final results
@@ -178,6 +191,8 @@ npm test
 6. **Flag emojis**: Visual language selection with country flags
 7. **Connection status**: Real-time connection indicators
 8. **Dynamic language selection**: Input language selection with smart defaults
+9. **Session code**: 9-digit code shown inline; persists across refresh; "Open Display" deep-link (`display.html?code=...`)
+10. **Language switching**: Debounced restart of ASR with clear status messages
 
 ### **Display Page:**
 1. **Socket.io client**: Listens for real-time updates
@@ -187,6 +202,7 @@ npm test
 5. **Connection status**: Bottom-right status indicator
 6. **Fullscreen support**: Toggle fullscreen for presentation mode
 7. **Responsive design**: Adapts to different screen sizes
+8. **Join session**: Enter a code in any format (spaces/dashes allowed); field becomes read-only after join; "Change code" unlocks input to switch sessions
 
 ## 📊 Performance Comparison
 
@@ -223,6 +239,11 @@ LIBRETRANSLATE_API_KEY=your_api_key_here
 
 ### **Language Combinations:**
 The app automatically fetches and validates language combinations from the LibreTranslate API. The `public/language-combinations.js` file contains the current supported combinations and is updated automatically.
+
+### **Sessions & Scaling:**
+- Current implementation uses an in-memory session store with 9-digit numeric codes and Socket.io rooms (`sess:<code>`).
+- For horizontal scaling, adopt Redis for both a session store and the Socket.io Redis adapter (`@socket.io/redis-adapter`).
+- Consider rate limits on session joins and short TTLs for sessions in public deployments.
 
 ## 🔒 Security Considerations
 

@@ -32,6 +32,55 @@ const io = socketIo(server, {
 // Store connected clients
 const clients = new Map();
 
+// In-memory sessions (Stage 1-3 MVP)
+// sessions: code(string) -> { code, controlSocketId, createdAt, ttlMs, stale, expireTimer }
+const sessions = new Map();
+// socket mapping: socketId -> { code, role: 'control' | 'display' }
+const socketToSession = new Map();
+
+const SESSION_TTL_MS = 60 * 60 * 1000; // 60 minutes
+const STALE_GRACE_MS = 5 * 60 * 1000;  // 5 minutes to allow control resume
+
+function generateSessionCode() {
+  // 9-digit numeric, zero-padded
+  let code;
+  do {
+    const n = Math.floor(Math.random() * 1_000_000_000); // 0..999,999,999
+    code = String(n).padStart(9, '0');
+  } while (sessions.has(code));
+  return code;
+}
+
+function createSession(controlSocketId) {
+  const code = generateSessionCode();
+  const session = {
+    code,
+    controlSocketId,
+    createdAt: Date.now(),
+    ttlMs: SESSION_TTL_MS,
+    stale: false,
+    expireTimer: setTimeout(() => expireSession(code), SESSION_TTL_MS)
+  };
+  sessions.set(code, session);
+  return session;
+}
+
+function expireSession(code) {
+  const s = sessions.get(code);
+  if (!s) return;
+  sessions.delete(code);
+  // notify room if needed
+  io.to(`sess:${code}`).emit('session-closed', { code });
+}
+
+function markSessionStale(code) {
+  const s = sessions.get(code);
+  if (!s || s.stale) return;
+  s.stale = true;
+  io.to(`sess:${code}`).emit('session-stale', { code });
+  // keep existing TTL; optionally set an earlier grace expiry
+}
+
 // Translation cache
 const translationCache = new Map();
 const CACHE_TTL = 3600000; // 1 hour
@@ -168,13 +217,90 @@ io.on('connection', (socket) => {
     connectedAt: Date.now()
   });
   
-  // Handle streaming text from control page
+  // Stage 1: Session lifecycle
+  socket.on('session-create', (_, ack) => {
+    try {
+      const session = createSession(socket.id);
+      const room = `sess:${session.code}`;
+      socket.join(room);
+      socketToSession.set(socket.id, { code: session.code, role: 'control' });
+      clients.set(socket.id, { type: 'control', connectedAt: Date.now() });
+      const payload = { code: session.code, ttlMs: session.ttlMs, expiresAt: session.createdAt + session.ttlMs };
+      if (typeof ack === 'function') ack({ ok: true, ...payload });
+      socket.emit('session-created', payload);
+    } catch (e) {
+      if (typeof ack === 'function') ack({ ok: false, error: 'create_failed' });
+    }
+  });
+
+  socket.on('session-resume', (data = {}, ack) => {
+    const { code } = data;
+    const session = code ? sessions.get(code) : null;
+    if (!session) return ack && ack({ ok: false, error: 'not_found' });
+    if (Date.now() > session.createdAt + session.ttlMs) return ack && ack({ ok: false, error: 'expired' });
+    // allow resume only if no active control
+    if (session.controlSocketId && session.controlSocketId !== socket.id) {
+      return ack && ack({ ok: false, error: 'already_has_control' });
+    }
+    session.controlSocketId = socket.id;
+    session.stale = false;
+    socket.join(`sess:${code}`);
+    socketToSession.set(socket.id, { code, role: 'control' });
+    clients.set(socket.id, { type: 'control', connectedAt: Date.now() });
+    ack && ack({ ok: true, code, ttlMs: session.ttlMs, expiresAt: session.createdAt + session.ttlMs });
+    io.to(`sess:${code}`).emit('session-resumed', { code });
+  });
+
+  socket.on('session-join', (data = {}, ack) => {
+    const { code } = data;
+    const session = code ? sessions.get(code) : null;
+    if (!session) return ack && ack({ ok: false, error: 'not_found' });
+    if (Date.now() > session.createdAt + session.ttlMs) return ack && ack({ ok: false, error: 'expired' });
+    // If already in a display session, leave previous room first
+    const existing = socketToSession.get(socket.id);
+    if (existing && existing.role === 'display' && existing.code && existing.code !== code) {
+      try { socket.leave(`sess:${existing.code}`); } catch {}
+    }
+    socket.join(`sess:${code}`);
+    socketToSession.set(socket.id, { code, role: 'display' });
+    clients.set(socket.id, { type: 'display', connectedAt: Date.now() });
+    ack && ack({ ok: true, code });
+    if (session.controlSocketId) io.to(session.controlSocketId).emit('display-joined', { socketId: socket.id });
+  });
+
+  // Create a brand new session for this control (leave old room and expire old session)
+  socket.on('session-new', (_, ack) => {
+    const map = socketToSession.get(socket.id);
+    if (map && map.role === 'control') {
+      const oldRoom = `sess:${map.code}`;
+      try { socket.leave(oldRoom); } catch {}
+      const old = sessions.get(map.code);
+      if (old) expireSession(map.code);
+    }
+    try {
+      const session = createSession(socket.id);
+      const room = `sess:${session.code}`;
+      socket.join(room);
+      socketToSession.set(socket.id, { code: session.code, role: 'control' });
+      clients.set(socket.id, { type: 'control', connectedAt: Date.now() });
+      const payload = { code: session.code, ttlMs: session.ttlMs, expiresAt: session.createdAt + session.ttlMs };
+      if (typeof ack === 'function') ack({ ok: true, ...payload });
+      socket.emit('session-created', payload);
+    } catch (e) {
+      if (typeof ack === 'function') ack({ ok: false, error: 'create_failed' });
+    }
+  });
+
+  // Handle streaming text from control page (now scoped to session room)
   socket.on('streaming-text', (data) => {
-    console.log('Streaming text received:', data.text);
-    
-    // Broadcast to all other clients (display pages)
-    socket.broadcast.emit('streaming-text', {
+    const map = socketToSession.get(socket.id);
+    if (!map) return;
+    const { code, role } = map;
+    if (role !== 'control') return; // Stage 2: enforce role
+    // Broadcast within the session room
+    socket.to(`sess:${code}`).emit('streaming-text', {
       ...data,
+      code,
       receivedAt: Date.now()
     });
     
@@ -187,11 +313,15 @@ io.on('connection', (socket) => {
   
   // Handle final translation from control page
   socket.on('final-translation', (data) => {
+    const map = socketToSession.get(socket.id);
+    if (!map) return;
+    const { code, role } = map;
+    if (role !== 'control') return; // Stage 2: enforce role
     console.log('Final translation received:', data.translated);
-    
-    // Broadcast to all other clients (display pages)
-    socket.broadcast.emit('final-translation', {
+    // Broadcast to displays in the same session
+    socket.to(`sess:${code}`).emit('final-translation', {
       ...data,
+      code,
       receivedAt: Date.now()
     });
     
@@ -218,6 +348,23 @@ io.on('connection', (socket) => {
   // Handle disconnection
   socket.on('disconnect', () => {
     console.log('Client disconnected:', socket.id);
+    const map = socketToSession.get(socket.id);
+    if (map) {
+      const { code, role } = map;
+      socketToSession.delete(socket.id);
+      if (role === 'control') {
+        const s = sessions.get(code);
+        if (s) {
+          s.controlSocketId = null;
+          markSessionStale(code);
+          // allow displays to keep listening for resume
+          setTimeout(() => {
+            const still = sessions.get(code);
+            if (still && !still.controlSocketId) expireSession(code);
+          }, STALE_GRACE_MS);
+        }
+      }
+    }
     clients.delete(socket.id);
     
     // Update client count

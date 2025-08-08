@@ -463,7 +463,13 @@
     <div class="container">
         <div class="header">
             <h1>📺 Translation Display</h1>
-            <p>Socket.io Version - Real-time translated text appears here</p>
+            
+            <div style="margin-top:8px; display:flex; gap:8px; justify-content:center; align-items:center;">
+                <input id="joinCodeInput" placeholder="Enter session code" style="padding:6px 10px; border:1px solid #e9ecef; border-radius:8px; width:220px;" />
+                <button id="joinBtn" style="padding:6px 12px; border:none; background:#007bff; color:white; border-radius:8px; cursor:pointer;">Join</button>
+                <button id="changeCodeBtn" style="display:none; padding:6px 12px; border:1px solid #e9ecef; background:#ffffff; color:#333; border-radius:8px; cursor:pointer;">Change code</button>
+            </div>
+            <div id="joinStatus" style="margin-top:6px; font-size:0.85rem; color:#666;"></div>
         </div>
 
         <nav class="nav">
@@ -590,7 +596,75 @@
             
             // Identify as display client
             socket.emit('client-type', 'display');
+            // Auto-join from URL if code present
+            const urlParams = new URLSearchParams(location.search);
+            const codeQ = urlParams.get('code');
+            if (codeQ) {
+                joinSession(codeQ);
+            }
         });
+        // Join UI handlers
+        const joinBtn = document.getElementById('joinBtn');
+        const changeCodeBtn = document.getElementById('changeCodeBtn');
+        const joinCodeInput = document.getElementById('joinCodeInput');
+        const joinStatus = document.getElementById('joinStatus');
+
+        function setJoinStatus(text, ok = true) {
+            if (!joinStatus) return;
+            joinStatus.textContent = text || '';
+            joinStatus.style.color = ok ? '#333' : '#dc3545';
+        }
+
+        function joinSession(code) {
+            setJoinStatus('Joining...');
+            // Sanitize: accept digits only, strip spaces/dashes/other
+            const clean = String(code || '').replace(/\D/g,'');
+            socket.emit('session-join', { code: clean }, (res) => {
+                if (res && res.ok) {
+                    const spaced = clean.replace(/(\d{3})(\d{3})(\d{3})/,'$1 $2 $3');
+                    setJoinStatus(`Joined session ${spaced}`, true);
+                    // remember code
+                    try { localStorage.setItem('lastSessionCode', clean); } catch {}
+                    // lock input to read-only and show change button
+                    if (joinCodeInput) {
+                        joinCodeInput.value = spaced;
+                        joinCodeInput.readOnly = true;
+                        joinCodeInput.style.background = '#f8f9fa';
+                    }
+                    if (joinBtn) joinBtn.style.display = 'none';
+                    if (changeCodeBtn) changeCodeBtn.style.display = 'inline-block';
+                } else {
+                    setJoinStatus(res && res.error ? `Join failed: ${res.error}` : 'Join failed', false);
+                }
+            });
+        }
+
+        if (joinBtn && joinCodeInput) {
+            joinBtn.addEventListener('click', () => {
+                const raw = (joinCodeInput.value || '').trim();
+                const digits = raw.replace(/\D/g,'');
+                if (digits) joinSession(digits);
+                else setJoinStatus('Please enter a valid code', false);
+            });
+            joinCodeInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') joinBtn.click();
+            });
+            // preload last code
+            try {
+                const last = localStorage.getItem('lastSessionCode');
+                if (last) joinCodeInput.value = last.replace(/(\d{3})(\d{3})(\d{3})/,'$1 $2 $3');
+            } catch {}
+        }
+
+        if (changeCodeBtn && joinCodeInput) {
+            changeCodeBtn.addEventListener('click', () => {
+                joinCodeInput.readOnly = false;
+                joinCodeInput.style.background = '#ffffff';
+                if (joinBtn) joinBtn.style.display = 'inline-block';
+                changeCodeBtn.style.display = 'none';
+                setJoinStatus('Enter a new code to join', true);
+            });
+        }
 
         socket.on('disconnect', () => {
             console.log('Disconnected from server');

@@ -410,9 +410,19 @@
 </head>
 <body>
     <div class="container">
+        <!-- Session overlay removed per request -->
+        <div id="sessionOverlay" class="session-overlay" style="display:none">
+            <div class="session-code-display" id="sessionOverlayCode">000 000 000</div>
+        </div>
         <div class="header">
-            <h1>🎤 Translation Control</h1>
-            <p>Socket.io Version - Speak into your microphone to translate in real-time</p>
+            <div style="display:flex; flex-wrap:wrap; align-items:center; justify-content:center; gap:16px;">
+                <h1 style="margin:0;">🎤 Translation Control</h1>
+                <div id="sessionInline" style="font-size:2rem; font-weight:700; color:#0d47a1; display:flex; align-items:center; gap:10px;">
+                    <span id="sessionInlineCode" style="background:#e3f2fd; border:2px solid #bbdefb; border-radius:12px; padding:6px 12px; display:inline-block;">— — —</span>
+                    <a id="displayLink" href="#" target="_blank" style="font-size:0.95rem; font-weight:500; color:#007bff; text-decoration:none; border:1px solid #e9ecef; padding:6px 10px; border-radius:8px; background:#ffffff;">Open Display</a>
+                </div>
+            </div>
+            
         </div>
 
         <nav class="nav">
@@ -494,6 +504,11 @@
         let recognition;
         let isListening = false;
         let currentSessionId = null;
+        let currentSessionCode = null;
+        let hasAnyDisplay = false;
+        let triedResume = false;
+        let isSwitchingLang = false;
+        let langChangeTimeout = null;
 
         // Language selection functions
         function populateSourceLanguages() {
@@ -507,11 +522,18 @@
                 const option = document.createElement('option');
                 option.value = langCode;
                 option.textContent = getLanguageName(langCode);
-                if (langCode === 'en') {
-                    option.selected = true;
-                }
                 sourceLanguage.appendChild(option);
             });
+
+            // Restore last selected source language
+            try {
+                const savedSrc = localStorage.getItem('sourceLanguage');
+                if (savedSrc && availableSources.includes(savedSrc)) {
+                    sourceLanguage.value = savedSrc;
+                } else if (!sourceLanguage.value) {
+                    sourceLanguage.value = 'en';
+                }
+            } catch {}
         }
 
         function updateTargetLanguages() {
@@ -584,6 +606,38 @@
             }
         }
 
+        // Debounced language switch while recording
+        function requestLanguageSwitch() {
+            try { localStorage.setItem('sourceLanguage', sourceLanguage.value); } catch {}
+            if (!recognition) return;
+            const langName = getLanguageName(sourceLanguage.value);
+            // If not listening, apply immediately but still inform user
+            if (!isListening) {
+                updateSpeechRecognitionLanguage();
+                status.textContent = `Input language set to ${langName}`;
+                status.className = 'status';
+                // brief notice then revert to idle message if no other state intervenes
+                setTimeout(() => {
+                    if (!isListening) {
+                        status.textContent = 'Click the microphone to start translating';
+                        status.className = 'status';
+                    }
+                }, 1500);
+                return;
+            }
+            // Debounce to avoid rapid restarts
+            if (langChangeTimeout) clearTimeout(langChangeTimeout);
+            langChangeTimeout = setTimeout(() => {
+                isSwitchingLang = true;
+                status.textContent = `Switching input language to ${langName}…`;
+                status.className = 'status recording';
+                sourceLanguage.disabled = true;
+                try {
+                    recognition.abort(); // immediate stop
+                } catch {}
+            }, 400);
+        }
+
         // Socket.io connection handling
         socket.on('connect', () => {
             console.log('Connected to Socket.io server');
@@ -592,6 +646,24 @@
             
             // Identify as control client
             socket.emit('client-type', 'control');
+
+            // Try to resume previous session code from localStorage once
+            const saved = (() => { try { return localStorage.getItem('controlSessionCode'); } catch { return null; }})();
+            if (!triedResume && saved && /^\d{9}$/.test(saved)) {
+                triedResume = true;
+                socket.emit('session-resume', { code: saved }, (res) => {
+                    if (res && res.ok) {
+                        currentSessionCode = res.code;
+                        showSessionCodeInline(currentSessionCode);
+                        showOverlayCode(currentSessionCode);
+                        console.log('Session resumed', res);
+                    } else {
+                        createNewSession();
+                    }
+                });
+            } else {
+                createNewSession();
+            }
         });
 
         socket.on('disconnect', () => {
@@ -620,6 +692,52 @@
         socket.on('client-count', (data) => {
             console.log('Connected clients:', data.count);
         });
+
+        // When a display joins this session (no overlay to hide anymore)
+        socket.on('display-joined', () => {
+            hasAnyDisplay = true;
+        });
+
+        socket.on('session-stale', () => {
+            hasAnyDisplay = false;
+        });
+
+        function showSessionCodeInline(code) {
+            const inline = document.getElementById('sessionInlineCode');
+            if (!inline) return;
+            const spaced = (code || '').replace(/\D/g,'').padStart(9,'0').replace(/(\d{3})(\d{3})(\d{3})/,'$1 $2 $3');
+            inline.textContent = spaced;
+            // update display link with code param
+            const link = document.getElementById('displayLink');
+            if (link) {
+                const digits = (code || '').replace(/\D/g,'');
+                const url = new URL(window.location.origin + '/display.html');
+                if (digits) url.searchParams.set('code', digits);
+                link.href = url.toString();
+            }
+        }
+
+        function showOverlayCode(code) {
+            // overlay removed; keep function no-op for compatibility
+            const overlay = document.getElementById('sessionOverlay');
+            if (overlay) overlay.style.display = 'none';
+        }
+
+        function createNewSession() {
+            socket.emit('session-create', {}, (res) => {
+                if (res && res.ok) {
+                    currentSessionCode = res.code;
+                    try { localStorage.setItem('controlSessionCode', currentSessionCode); } catch {}
+                    showSessionCodeInline(currentSessionCode);
+                    showOverlayCode(currentSessionCode);
+                    console.log('Session created', res);
+                } else {
+                    console.warn('Failed to create session', res);
+                }
+            });
+        }
+
+        // Removed new code button handler per request
 
         // Initialize speech recognition
         function initSpeechRecognition() {
@@ -743,6 +861,18 @@
                 };
 
                 recognition.onend = () => {
+                    if (isSwitchingLang) {
+                        // Apply lang change and restart
+                        updateSpeechRecognitionLanguage();
+                        isSwitchingLang = false;
+                        sourceLanguage.disabled = false;
+                        try {
+                            recognition.start();
+                        } catch {}
+                        status.textContent = 'Listening... Speak now!';
+                        status.className = 'status recording';
+                        return;
+                    }
                     stopListening();
                 };
             } else {
@@ -886,7 +1016,7 @@
         // Language selection event listeners
         sourceLanguage.addEventListener('change', () => {
             updateTargetLanguages();
-            updateSpeechRecognitionLanguage();
+            requestLanguageSwitch();
         });
 
         // Initialize
