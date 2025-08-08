@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Translation Display - Audience</title>
+    <title>Translation Display - Socket.io Version</title>
     <style>
         * {
             margin: 0;
@@ -104,11 +104,12 @@
             padding: 20px;
             text-align: center;
             position: relative;
-            min-height: 120px;
+            min-height: 150px;
             display: flex;
             flex-direction: column;
             justify-content: center;
             align-items: center;
+            flex: 0.25;
         }
 
         .streaming-section.active {
@@ -134,7 +135,7 @@
         }
 
         .streaming-text {
-            font-size: 1.8rem;
+            font-size: 2rem;
             color: #856404;
             font-weight: 500;
             word-wrap: break-word;
@@ -163,7 +164,21 @@
             flex-direction: column;
             justify-content: center;
             align-items: center;
-            min-height: 120px;
+            min-height: 150px;
+        }
+
+        .confidence-chip {
+            margin-top: 6px;
+            font-size: 0.85rem;
+            padding: 4px 10px;
+            border-radius: 12px;
+            border: 1px solid #e9ecef;
+            background: #ffffff;
+            color: #333;
+        }
+
+        .confidence-chip .dot {
+            margin-right: 6px;
         }
 
         .final-translation-section.hidden {
@@ -234,21 +249,60 @@
         }
 
         .history-item:nth-child(1) {
-            background: #e3f2fd;
-            border-left-color: #2196f3;
+            background: #1565c0;
+            border-left-color: #0d47a1;
+            color: white;
+        }
+
+        .history-item:nth-child(1) .history-original,
+        .history-item:nth-child(1) .history-translation,
+        .history-item:nth-child(1) .history-timestamp {
+            color: white;
         }
 
         .history-item:nth-child(2) {
-            background: #d4e6f7;
-            border-left-color: #1976d2;
+            background: #1976d2;
+            border-left-color: #1565c0;
+            color: white;
+        }
+
+        .history-item:nth-child(2) .history-original,
+        .history-item:nth-child(2) .history-translation,
+        .history-item:nth-child(2) .history-timestamp {
+            color: white;
         }
 
         .history-item:nth-child(3) {
-            background: #c5daf1;
-            border-left-color: #1565c0;
+            background: #42a5f5;
+            border-left-color: #1976d2;
+            color: white;
         }
 
-        .history-item:nth-child(n+4) {
+        .history-item:nth-child(3) .history-original,
+        .history-item:nth-child(3) .history-translation,
+        .history-item:nth-child(3) .history-timestamp {
+            color: white;
+        }
+
+        .history-item:nth-child(4) {
+            background: #90caf9;
+            border-left-color: #42a5f5;
+            color: #333;
+        }
+
+        .history-item:nth-child(5) {
+            background: #bbdefb;
+            border-left-color: #90caf9;
+            color: #333;
+        }
+
+        .history-item:nth-child(6) {
+            background: #e3f2fd;
+            border-left-color: #bbdefb;
+            color: #333;
+        }
+
+        .history-item:nth-child(n+7) {
             background: #f8f9fa;
             border-left-color: #6c757d;
         }
@@ -334,6 +388,25 @@
             padding: 30px;
         }
 
+        .connection-status {
+            background: #e3f2fd;
+            border: 1px solid #2196f3;
+            border-radius: 8px;
+            padding: 10px;
+            margin-top: 15px;
+            text-align: center;
+        }
+
+        .connection-status.connected {
+            background: #d4edda;
+            border-color: #28a745;
+        }
+
+        .connection-status.disconnected {
+            background: #f8d7da;
+            border-color: #dc3545;
+        }
+
         @keyframes pulse {
             0% { opacity: 1; }
             50% { opacity: 0.5; }
@@ -371,11 +444,11 @@
             }
             
             .translation-text {
-                font-size: 2rem;
+                font-size: 1.5rem;
             }
             
             .streaming-text {
-                font-size: 1.5rem;
+                font-size: 1.3rem;
             }
             
             .header h1 {
@@ -390,7 +463,13 @@
     <div class="container">
         <div class="header">
             <h1>📺 Translation Display</h1>
-            <p>Real-time translated text appears here</p>
+            
+            <div style="margin-top:8px; display:flex; gap:8px; justify-content:center; align-items:center;">
+                <input id="joinCodeInput" placeholder="Enter session code" style="padding:6px 10px; border:1px solid #e9ecef; border-radius:8px; width:220px;" />
+                <button id="joinBtn" style="padding:6px 12px; border:none; background:#007bff; color:white; border-radius:8px; cursor:pointer;">Join</button>
+                <button id="changeCodeBtn" style="display:none; padding:6px 12px; border:1px solid #e9ecef; background:#ffffff; color:#333; border-radius:8px; cursor:pointer;">Change code</button>
+            </div>
+            <div id="joinStatus" style="margin-top:6px; font-size:0.85rem; color:#666;"></div>
         </div>
 
         <nav class="nav">
@@ -403,7 +482,7 @@
                 <div class="status-section">
                     <div class="status-indicator">
                         <div id="statusDot" class="status-dot disconnected"></div>
-                        <span id="statusText" class="status-text">Connecting to translation service...</span>
+                        <span id="statusText" class="status-text">Connecting to Socket.io server...</span>
                     </div>
                 </div>
 
@@ -420,6 +499,7 @@
                     <div id="originalText" class="original-text">Waiting for translation...</div>
                     <div id="translationText" class="translation-text"></div>
                     <div id="languageBadge" class="language-badge"></div>
+                    <div id="confidenceChip" class="confidence-chip"></div>
                 </div>
 
                 <div id="waitingMessage" class="waiting-message">
@@ -436,27 +516,12 @@
         </div>
     </div>
 
-    <!-- Firebase SDK -->
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
-
-        // Firebase configuration
-        const firebaseConfig = {
-            apiKey: "AIzaSyBsVnpr1mc83O6ruDVgfveOuMI5yu-7Q4U",
-            authDomain: "ai-rt-translator.firebaseapp.com",
-            projectId: "ai-rt-translator",
-            storageBucket: "ai-rt-translator.firebasestorage.app",
-            messagingSenderId: "265687581133",
-            appId: "1:265687581133:web:d6a946380c19231e828484",
-            measurementId: "G-585R6F32J2",
-            databaseURL: "https://ai-rt-translator-default-rtdb.europe-west1.firebasedatabase.app"
-        };
-
-        // Initialize Firebase
-        const app = initializeApp(firebaseConfig);
-        const database = getDatabase(app);
-
+    <!-- Socket.io Client -->
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        // Initialize Socket.io connection
+        const socket = io();
+        
         // DOM elements
         const statusDot = document.getElementById('statusDot');
         const statusText = document.getElementById('statusText');
@@ -474,17 +539,153 @@
 
         // Language names mapping
         const languageNames = {
-            'es': 'Spanish',
-            'fr': 'French',
-            'de': 'German',
-            'it': 'Italian',
-            'pt': 'Portuguese',
-            'ru': 'Russian',
-            'ja': 'Japanese',
-            'ko': 'Korean',
-            'zh': 'Chinese',
-            'ar': 'Arabic'
+            'en': '🇺🇸 English',
+            'fr': '🇫🇷 French',
+            'de': '🇩🇪 German',
+            'es': '🇪🇸 Spanish',
+            'it': '🇮🇹 Italian',
+            'pt': '🇵🇹 Portuguese',
+            'pt-BR': '🇧🇷 Portuguese (Brazil)',
+            'ru': '🇷🇺 Russian',
+            'zh-Hans': '🇨🇳 Chinese (Simplified)',
+            'zh-Hant': '🇹🇼 Chinese (Traditional)',
+            'ja': '🇯🇵 Japanese',
+            'ko': '🇰🇷 Korean',
+            'ar': '🇸🇦 Arabic',
+            'hi': '🇮🇳 Hindi',
+            'th': '🇹🇭 Thai',
+            'tr': '🇹🇷 Turkish',
+            'nl': '🇳🇱 Dutch',
+            'pl': '🇵🇱 Polish',
+            'cs': '🇨🇿 Czech',
+            'sv': '🇸🇪 Swedish',
+            'da': '🇩🇰 Danish',
+            'fi': '🇫🇮 Finnish',
+            'nb': '🇳🇴 Norwegian',
+            'he': '🇮🇱 Hebrew',
+            'id': '🇮🇩 Indonesian',
+            'uk': '🇺🇦 Ukrainian',
+            'sq': '🇦🇱 Albanian',
+            'az': '🇦🇿 Azerbaijani',
+            'eu': '🇪🇸 Basque',
+            'bn': '🇧🇩 Bengali',
+            'bg': '🇧🇬 Bulgarian',
+            'ca': '🇪🇸 Catalan',
+            'eo': '🏳️ Esperanto',
+            'et': '🇪🇪 Estonian',
+            'gl': '🇪🇸 Galician',
+            'el': '🇬🇷 Greek',
+            'hu': '🇭🇺 Hungarian',
+            'ga': '🇮🇪 Irish',
+            'ky': '🇰🇬 Kyrgyz',
+            'lv': '🇱🇻 Latvian',
+            'lt': '🇱🇹 Lithuanian',
+            'ms': '🇲🇾 Malay',
+            'fa': '🇮🇷 Persian',
+            'ro': '🇷🇴 Romanian',
+            'sk': '🇸🇰 Slovak',
+            'sl': '🇸🇮 Slovenian',
+            'tl': '🇵🇭 Tagalog',
+            'ur': '🇵🇰 Urdu'
         };
+
+        // Socket.io connection handling
+        socket.on('connect', () => {
+            console.log('Connected to Socket.io server');
+            updateStatus(true);
+            
+            // Identify as display client
+            socket.emit('client-type', 'display');
+            // Auto-join from URL if code present
+            const urlParams = new URLSearchParams(location.search);
+            const codeQ = urlParams.get('code');
+            if (codeQ) {
+                joinSession(codeQ);
+            }
+        });
+        // Join UI handlers
+        const joinBtn = document.getElementById('joinBtn');
+        const changeCodeBtn = document.getElementById('changeCodeBtn');
+        const joinCodeInput = document.getElementById('joinCodeInput');
+        const joinStatus = document.getElementById('joinStatus');
+
+        function setJoinStatus(text, ok = true) {
+            if (!joinStatus) return;
+            joinStatus.textContent = text || '';
+            joinStatus.style.color = ok ? '#333' : '#dc3545';
+        }
+
+        function joinSession(code) {
+            setJoinStatus('Joining...');
+            // Sanitize: accept digits only, strip spaces/dashes/other
+            const clean = String(code || '').replace(/\D/g,'');
+            socket.emit('session-join', { code: clean }, (res) => {
+                if (res && res.ok) {
+                    setJoinStatus(`Joined session ${clean}`, true);
+                    // remember code
+                    try { localStorage.setItem('lastSessionCode', clean); } catch {}
+                    // lock input to read-only and show change button
+                    if (joinCodeInput) {
+                        joinCodeInput.value = clean;
+                        joinCodeInput.readOnly = true;
+                        joinCodeInput.style.background = '#f8f9fa';
+                    }
+                    if (joinBtn) joinBtn.style.display = 'none';
+                    if (changeCodeBtn) changeCodeBtn.style.display = 'inline-block';
+                } else {
+                    setJoinStatus(res && res.error ? `Join failed: ${res.error}` : 'Join failed', false);
+                }
+            });
+        }
+
+        if (joinBtn && joinCodeInput) {
+            joinBtn.addEventListener('click', () => {
+                const raw = (joinCodeInput.value || '').trim();
+                const digits = raw.replace(/\D/g,'');
+                if (digits) joinSession(digits);
+                else setJoinStatus('Please enter a valid code', false);
+            });
+            joinCodeInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') joinBtn.click();
+            });
+            // preload last code
+            try {
+                const last = localStorage.getItem('lastSessionCode');
+                if (last) joinCodeInput.value = last;
+            } catch {}
+        }
+
+        if (changeCodeBtn && joinCodeInput) {
+            changeCodeBtn.addEventListener('click', () => {
+                joinCodeInput.readOnly = false;
+                joinCodeInput.style.background = '#ffffff';
+                if (joinBtn) joinBtn.style.display = 'inline-block';
+                changeCodeBtn.style.display = 'none';
+                setJoinStatus('Enter a new code to join', true);
+            });
+        }
+
+        socket.on('disconnect', () => {
+            console.log('Disconnected from server');
+            updateStatus(false);
+        });
+
+        // Listen for streaming text
+        socket.on('streaming-text', (data) => {
+            console.log('Streaming text received via Socket.io:', data);
+            showStreamingText(data);
+        });
+
+        // Listen for final translations
+        socket.on('final-translation', (data) => {
+            console.log('Final translation received via Socket.io:', data);
+            showTranslation(data);
+        });
+
+        // Listen for client count updates
+        socket.on('client-count', (data) => {
+            console.log('Connected clients:', data.count);
+        });
 
         function updateStatus(connected, receiving = false) {
             statusDot.className = 'status-dot';
@@ -501,12 +702,55 @@
         }
 
         function showTranslation(data) {
+            // Check if the translation is from the last minute
+            const oneMinuteAgo = Date.now() - (60 * 1000);
+            if (data.timestamp < oneMinuteAgo) {
+                return; // Don't show old translations
+            }
+
+            // Clear any existing streaming timeout
+            if (window.streamingTimeout) {
+                clearTimeout(window.streamingTimeout);
+                window.streamingTimeout = null;
+            }
+
             waitingMessage.style.display = 'none';
-            streamingSection.classList.add('hidden');
+            // Keep streaming section visible and update it with final translation
+            streamingSection.classList.remove('hidden');
+            
+            // Update streaming section with final translation
+            streamingText.innerHTML = `
+                <div style="font-size: 1rem; color: #666; margin-bottom: 8px; font-style: italic;">
+                    "${data.original}"
+                </div>
+                <div style="font-size: 1.8rem; color: #856404; font-weight: 500;">
+                    ${data.translated}
+                </div>
+            `;
 
             originalText.textContent = `"${data.original}"`;
             translationText.textContent = data.translated;
-            languageBadge.textContent = `Translated to ${languageNames[data.targetLanguage] || data.targetLanguage}`;
+            const sourceLangName = languageNames[data.sourceLanguage] || data.sourceLanguage;
+            const targetLangName = languageNames[data.targetLanguage] || data.targetLanguage;
+            languageBadge.textContent = `${sourceLangName} → ${targetLangName}`;
+
+            // Show ASR confidence as High/Medium/Low if provided
+            const chip = document.getElementById('confidenceChip');
+            if (chip) {
+                if (typeof data.asrConfidence === 'number') {
+                    const c = Math.max(0, Math.min(1, data.asrConfidence));
+                    let level = 'Low';
+                    let emoji = '🟠';
+                    if (c >= 0.9) { level = 'High'; emoji = '🟢'; }
+                    else if (c >= 0.75) { level = 'Medium'; emoji = '🟠'; }
+                    else { level = 'Low'; emoji = '🔴'; }
+                    chip.textContent = `${emoji} ${level} confidence`;
+                    chip.style.display = 'inline-block';
+                } else {
+                    chip.textContent = '';
+                    chip.style.display = 'none';
+                }
+            }
 
             // Add to history
             addToHistory(data);
@@ -516,9 +760,21 @@
             setTimeout(() => {
                 translationText.style.animation = 'fadeIn 0.5s ease-in';
             }, 10);
+
+            // Set timeout to clear streaming text after 15 seconds (but keep box visible)
+            window.streamingTimeout = setTimeout(() => {
+                streamingText.textContent = '';
+                updateStatus(true, false);
+            }, 15000);
         }
 
         function addToHistory(data) {
+            // Check if the translation is from the last minute
+            const oneMinuteAgo = Date.now() - (60 * 1000);
+            if (data.timestamp < oneMinuteAgo) {
+                return; // Don't add old translations to history
+            }
+
             // Check if this translation is already in history (same timestamp and text)
             const isDuplicate = translationHistoryArray.some(item => 
                 item.timestamp === data.timestamp && 
@@ -589,59 +845,29 @@
                 
                 // Update status to show receiving
                 updateStatus(true, true);
+                
+                // Clear any existing timeout
+                if (window.streamingTimeout) {
+                    clearTimeout(window.streamingTimeout);
+                }
+                
+                // Set timeout to clear streaming text after 15 seconds (but keep box visible)
+                window.streamingTimeout = setTimeout(() => {
+                    streamingText.textContent = '';
+                    updateStatus(true, false);
+                }, 15000);
             } else {
                 streamingSection.classList.add('hidden');
             }
         }
 
         function hideStreamingText() {
+            // Clear any existing streaming timeout
+            if (window.streamingTimeout) {
+                clearTimeout(window.streamingTimeout);
+                window.streamingTimeout = null;
+            }
             streamingSection.classList.add('hidden');
-        }
-
-        // Listen for real-time updates from Firebase
-        try {
-            const liveTextRef = ref(database, 'live_text');
-            const streamingTextRef = ref(database, 'streaming_text');
-            
-            // Listen for final translations
-            onValue(liveTextRef, (snapshot) => {
-                updateStatus(true);
-                
-                if (snapshot.exists()) {
-                    const data = snapshot.val();
-                    updateStatus(true, true);
-                    showTranslation(data);
-                    hideStreamingText(); // Hide streaming when final translation arrives
-                    
-                    // Reset status after showing translation
-                    setTimeout(() => {
-                        updateStatus(true);
-                    }, 2000);
-                } else {
-                    showWaiting();
-                }
-            }, (error) => {
-                console.error('Error listening for translations:', error);
-                updateStatus(false);
-                // connectionMessage.textContent = 'Error connecting to Firebase'; // This element is no longer used
-            });
-
-            // Listen for streaming text
-            onValue(streamingTextRef, (snapshot) => {
-                console.log('Streaming data received:', snapshot.val());
-                if (snapshot.exists()) {
-                    const data = snapshot.val();
-                    showStreamingText(data);
-                } else {
-                    hideStreamingText();
-                }
-            }, (error) => {
-                console.error('Error listening for streaming text:', error);
-            });
-        } catch (error) {
-            console.error('Firebase not configured:', error);
-            updateStatus(false);
-            // connectionMessage.textContent = 'Error connecting to Firebase'; // This element is no longer used
         }
 
         // Fullscreen functionality
