@@ -214,6 +214,28 @@
             font-size: 1.1rem;
         }
 
+        .confidence-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-top: 6px;
+        }
+
+        .confidence-badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            border: 1px solid #e9ecef;
+            background: #ffffff;
+            color: #333;
+        }
+
+        .confidence-dot {
+            font-size: 0.9rem;
+            line-height: 1;
+        }
+
         .error {
             background: #f8d7da;
             color: #721c24;
@@ -426,6 +448,10 @@
                     <div class="transcript">
                         <h3>📝 Your Speech</h3>
                         <p id="transcript">No speech detected yet...</p>
+                            <div class="confidence-row">
+                                <span id="confidenceDot" aria-label="confidence indicator"></span>
+                                <span class="confidence-badge" id="confidenceBadge">Confidence: --</span>
+                            </div>
                     </div>
 
                     <div id="message"></div>
@@ -601,6 +627,7 @@
                 recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
                 recognition.continuous = true;
                 recognition.interimResults = true;
+                recognition.maxAlternatives = 3;
                 recognition.lang = 'en-US';
 
                 recognition.onstart = () => {
@@ -612,27 +639,84 @@
                 };
 
                 recognition.onresult = async (event) => {
-                    let finalTranscript = '';
-                    let interimTranscript = '';
+                    // Helper to map confidence (0..1) to a grayscale color
+                    const confidenceToColor = (conf, isFinal) => {
+                        if (!isFinal && (conf === 0 || Number.isNaN(conf))) return '#888';
+                        const c = Math.max(0, Math.min(1, conf || 0));
+                        // 0 -> #999, 0.6 -> #666, 0.75 -> #444, 0.9+ -> #222
+                        if (c >= 0.9) return '#222';
+                        if (c >= 0.75) return '#444';
+                        if (c >= 0.6) return '#666';
+                        return '#999';
+                    };
+
+                    let finalParts = [];
+                    let finalConfs = [];
+                    let interimParts = [];
+                    let interimConfs = [];
 
                     for (let i = event.resultIndex; i < event.results.length; i++) {
-                        const transcript = event.results[i][0].transcript;
-                        if (event.results[i].isFinal) {
-                            finalTranscript += transcript;
+                        const res = event.results[i];
+                        const alternatives = Array.from(res).map(a => ({ text: (a.transcript || '').trim(), conf: typeof a.confidence === 'number' ? a.confidence : 0 }));
+                        const best = alternatives.sort((a, b) => (b.conf - a.conf))[0] || { text: '', conf: 0 };
+
+                        if (res.isFinal) {
+                            if (best.text) finalParts.push(best.text);
+                            finalConfs.push(best.conf);
                         } else {
-                            interimTranscript += transcript;
+                            if (best.text) interimParts.push(best.text);
+                            interimConfs.push(best.conf);
                         }
                     }
 
-                    // Send streaming data for ANY text (interim or final)
+                    const finalTranscript = finalParts.join(' ').trim();
+                    const interimTranscript = interimParts.join(' ').trim();
+
+                    // Decide what to display as the live transcript and its color
+                    let displayText = '';
+                    let displayConf = 0;
+                    let isFinalDisplay = false;
+
+                    if (finalTranscript) {
+                        displayText = finalTranscript;
+                        const avgFinal = finalConfs.length ? (finalConfs.reduce((a, b) => a + b, 0) / finalConfs.length) : 0;
+                        displayConf = avgFinal;
+                        isFinalDisplay = true;
+                    } else if (interimTranscript) {
+                        displayText = `${interimTranscript}...`;
+                        const avgInterim = interimConfs.length ? (interimConfs.reduce((a, b) => a + b, 0) / interimConfs.length) : 0;
+                        displayConf = avgInterim;
+                        isFinalDisplay = false;
+                    }
+
+                    if (displayText) {
+                        transcript.textContent = displayText;
+                        transcript.style.color = confidenceToColor(displayConf, isFinalDisplay);
+                        transcript.title = isFinalDisplay ? `Confidence: ${(displayConf * 100).toFixed(0)}%` : 'Interim result';
+                        const badge = document.getElementById('confidenceBadge');
+                        if (badge) {
+                            badge.textContent = isFinalDisplay
+                                ? `${(displayConf * 100).toFixed(0)}% confidence`
+                                : 'interim confidence';
+                        }
+
+                        const dot = document.getElementById('confidenceDot');
+                        if (dot) {
+                            // emoji dots: green, amber, red
+                            // thresholds align with color mapping
+                            let emoji = '🟠'; // default amber
+                            if (displayConf >= 0.9) emoji = '🟢';
+                            else if (displayConf < 0.75) emoji = '🔴';
+                            dot.className = 'confidence-dot';
+                            dot.textContent = emoji;
+                            dot.title = isFinalDisplay ? `Confidence level` : 'Interim';
+                        }
+                    }
+
+                    // Send streaming data (interim or final) as before
                     const streamingText = interimTranscript || finalTranscript;
-                    
-                    console.log('Speech detected:', { interimTranscript, finalTranscript, streamingText });
-                    
                     if (streamingText && streamingText.trim()) {
-                        // Use server-side translation for streaming text
                         const translatedStreamingText = await translateText(streamingText, targetLanguage.value);
-                        
                         const streamingData = {
                             text: streamingText,
                             translatedText: translatedStreamingText,
@@ -642,19 +726,14 @@
                             sourceLanguage: sourceLanguage.value,
                             targetLanguage: targetLanguage.value
                         };
-
-                        console.log('Sending streaming data via Socket.io:', streamingData);
-                        
-                        // Send via Socket.io
                         socket.emit('streaming-text', streamingData);
                     }
 
-                    if (finalTranscript) {
-                        transcript.textContent = finalTranscript;
-                        translateAndSend(finalTranscript);
-                    } else if (interimTranscript) {
-                        transcript.textContent = interimTranscript + '...';
-                    }
+                if (finalTranscript) {
+                    // Pass confidence summary along with final translation
+                    const avgFinal = finalConfs.length ? (finalConfs.reduce((a, b) => a + b, 0) / finalConfs.length) : 0;
+                    await translateAndSend(finalTranscript, avgFinal);
+                }
                 };
 
                 recognition.onerror = (event) => {
@@ -709,7 +788,7 @@
             }
         }
 
-        async function translateAndSend(text) {
+        async function translateAndSend(text, asrConfidence = null) {
             if (!text.trim()) return;
 
             status.textContent = 'Translating...';
@@ -727,7 +806,8 @@
                     translated: translatedText,
                     sourceLanguage: sourceLanguage.value,
                     targetLanguage: targetLang,
-                    timestamp: Date.now()
+                    timestamp: Date.now(),
+                    asrConfidence
                 };
 
                 socket.emit('final-translation', translationData);

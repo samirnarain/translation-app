@@ -167,6 +167,20 @@
             min-height: 150px;
         }
 
+        .confidence-chip {
+            margin-top: 6px;
+            font-size: 0.85rem;
+            padding: 4px 10px;
+            border-radius: 12px;
+            border: 1px solid #e9ecef;
+            background: #ffffff;
+            color: #333;
+        }
+
+        .confidence-chip .dot {
+            margin-right: 6px;
+        }
+
         .final-translation-section.hidden {
             display: none;
         }
@@ -479,6 +493,7 @@
                     <div id="originalText" class="original-text">Waiting for translation...</div>
                     <div id="translationText" class="translation-text"></div>
                     <div id="languageBadge" class="language-badge"></div>
+                    <div id="confidenceChip" class="confidence-chip"></div>
                 </div>
 
                 <div id="waitingMessage" class="waiting-message">
@@ -645,6 +660,24 @@
             const sourceLangName = languageNames[data.sourceLanguage] || data.sourceLanguage;
             const targetLangName = languageNames[data.targetLanguage] || data.targetLanguage;
             languageBadge.textContent = `${sourceLangName} → ${targetLangName}`;
+
+            // Show ASR confidence as High/Medium/Low if provided
+            const chip = document.getElementById('confidenceChip');
+            if (chip) {
+                if (typeof data.asrConfidence === 'number') {
+                    const c = Math.max(0, Math.min(1, data.asrConfidence));
+                    let level = 'Low';
+                    let emoji = '🟠';
+                    if (c >= 0.9) { level = 'High'; emoji = '🟢'; }
+                    else if (c >= 0.75) { level = 'Medium'; emoji = '🟠'; }
+                    else { level = 'Low'; emoji = '🔴'; }
+                    chip.textContent = `${emoji} ${level} confidence`;
+                    chip.style.display = 'inline-block';
+                } else {
+                    chip.textContent = '';
+                    chip.style.display = 'none';
+                }
+            }
 
             // Add to history
             addToHistory(data);

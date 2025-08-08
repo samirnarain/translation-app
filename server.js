@@ -249,12 +249,13 @@ app.get('/', (req, res) => {
 });
 
 const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => {
-  console.log(`🚀 Socket.io translation server running on port ${PORT}`);
+const HOST = "localhost"; // Simplified for ngrok
+server.listen(PORT, HOST, () => {
+  console.log(`🚀 Socket.io translation server running on ${HOST}:${PORT}`);
   console.log(`📱 Control page: http://localhost:${PORT}/control.html`);
   console.log(`📺 Display page: http://localhost:${PORT}/display.html`);
   console.log(`🏥 Health check: http://localhost:${PORT}/health`);
   console.log(`📊 Translation stats: http://localhost:${PORT}/translation-stats`);
   console.log(`🔧 LibreTranslate URL: ${LIBRETRANSLATE_URL}`);
   console.log(`🔑 API Key configured: ${LIBRETRANSLATE_API_KEY ? 'Yes' : 'No'}`);
-}); 
+});
