@@ -192,6 +192,9 @@ ngrok http 3000
 7. **Connection status**: Real-time connection indicators
 8. **Dynamic language selection**: Input language selection with smart defaults
 9. **Session code**: 9-digit code shown inline; persists across refresh; "Open Display" deep-link (`display.html?code=...`)
+   - Visual grouping 3-3-3 via layout (no actual spaces in the text)
+   - Click-to-copy writes digits-only to clipboard; highlight + Cmd/Ctrl+C also copies digits-only
+   - Stored in `localStorage` along with a server-issued `resumeToken` to reclaim the same session after refresh/reconnect
 10. **Language switching**: Debounced restart of ASR with clear status messages
 
 ### **Display Page:**
@@ -203,6 +206,7 @@ ngrok http 3000
 6. **Fullscreen support**: Toggle fullscreen for presentation mode
 7. **Responsive design**: Adapts to different screen sizes
 8. **Join session**: Enter a code in any format (spaces/dashes allowed); field becomes read-only after join; "Change code" unlocks input to switch sessions
+9. **Code display**: Shown as digits-only (no spaces) on the Display after join
 
 ## 📊 Performance Comparison
 
@@ -241,9 +245,11 @@ LIBRETRANSLATE_API_KEY=your_api_key_here
 The app automatically fetches and validates language combinations from the LibreTranslate API. The `public/language-combinations.js` file contains the current supported combinations and is updated automatically.
 
 ### **Sessions & Scaling:**
-- Current implementation uses an in-memory session store with 9-digit numeric codes and Socket.io rooms (`sess:<code>`).
-- For horizontal scaling, adopt Redis for both a session store and the Socket.io Redis adapter (`@socket.io/redis-adapter`).
-- Consider rate limits on session joins and short TTLs for sessions in public deployments.
+- Default: In-memory session store with 9-digit numeric codes and Socket.io rooms (`sess:<code>`)
+- Optional Redis: When available, used for session persistence and the Socket.io Redis adapter (multi-instance ready)
+- Session persistence: Control stores `controlSessionCode` + short-lived `resumeToken` in `localStorage` to resume the same session across refresh/reconnect
+- Example Redis keys: `sess:<code>` (hash), `sess:<code>:presence` (set), `sess:<code>:displays` (set), `sess:<code>:resume:<token>` (string with TTL)
+- Expiry & stale handling: TTL-based expiration with groundwork for warnings and rolling extension when active
 
 ## 🔒 Security Considerations
 

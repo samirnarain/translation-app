@@ -621,13 +621,12 @@
             const clean = String(code || '').replace(/\D/g,'');
             socket.emit('session-join', { code: clean }, (res) => {
                 if (res && res.ok) {
-                    const spaced = clean.replace(/(\d{3})(\d{3})(\d{3})/,'$1 $2 $3');
-                    setJoinStatus(`Joined session ${spaced}`, true);
+                    setJoinStatus(`Joined session ${clean}`, true);
                     // remember code
                     try { localStorage.setItem('lastSessionCode', clean); } catch {}
                     // lock input to read-only and show change button
                     if (joinCodeInput) {
-                        joinCodeInput.value = spaced;
+                        joinCodeInput.value = clean;
                         joinCodeInput.readOnly = true;
                         joinCodeInput.style.background = '#f8f9fa';
                     }
@@ -652,7 +651,7 @@
             // preload last code
             try {
                 const last = localStorage.getItem('lastSessionCode');
-                if (last) joinCodeInput.value = last.replace(/(\d{3})(\d{3})(\d{3})/,'$1 $2 $3');
+                if (last) joinCodeInput.value = last;
             } catch {}
         }
 

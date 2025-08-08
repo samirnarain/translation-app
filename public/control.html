@@ -418,7 +418,7 @@
             <div style="display:flex; flex-wrap:wrap; align-items:center; justify-content:center; gap:16px;">
                 <h1 style="margin:0;">🎤 Translation Control</h1>
                 <div id="sessionInline" style="font-size:2rem; font-weight:700; color:#0d47a1; display:flex; align-items:center; gap:10px;">
-                    <span id="sessionInlineCode" style="background:#e3f2fd; border:2px solid #bbdefb; border-radius:12px; padding:6px 12px; display:inline-block;">— — —</span>
+                    <span id="sessionInlineCode" style="background:#e3f2fd; border:2px solid #bbdefb; border-radius:12px; padding:6px 12px; display:inline-block; white-space: nowrap;">———</span>
                     <a id="displayLink" href="#" target="_blank" style="font-size:0.95rem; font-weight:500; color:#007bff; text-decoration:none; border:1px solid #e9ecef; padding:6px 10px; border-radius:8px; background:#ffffff;">Open Display</a>
                 </div>
             </div>
@@ -649,11 +649,13 @@
 
             // Try to resume previous session code from localStorage once
             const saved = (() => { try { return localStorage.getItem('controlSessionCode'); } catch { return null; }})();
+            const savedToken = (() => { try { return localStorage.getItem('controlResumeToken'); } catch { return null; }})();
             if (!triedResume && saved && /^\d{9}$/.test(saved)) {
                 triedResume = true;
-                socket.emit('session-resume', { code: saved }, (res) => {
+                socket.emit('session-resume', { code: saved, token: savedToken }, (res) => {
                     if (res && res.ok) {
                         currentSessionCode = res.code;
+                        try { if (res.resumeToken) localStorage.setItem('controlResumeToken', res.resumeToken); } catch {}
                         showSessionCodeInline(currentSessionCode);
                         showOverlayCode(currentSessionCode);
                         console.log('Session resumed', res);
@@ -705,12 +707,50 @@
         function showSessionCodeInline(code) {
             const inline = document.getElementById('sessionInlineCode');
             if (!inline) return;
-            const spaced = (code || '').replace(/\D/g,'').padStart(9,'0').replace(/(\d{3})(\d{3})(\d{3})/,'$1 $2 $3');
-            inline.textContent = spaced;
+            const digits = (code || '').replace(/\D/g,'').padStart(9,'0');
+            // Build visually grouped code without spaces for copy operations
+            // Create three spans for 3-3-3 digits and add gaps via margin (not spaces)
+            const group1 = digits.slice(0,3);
+            const group2 = digits.slice(3,6);
+            const group3 = digits.slice(6,9);
+            // Build without any whitespace text nodes between spans to avoid spaces when highlighting/copying
+            inline.innerHTML = '<span class="code-group" style="margin-right:12px;">' + group1 + '</span>' +
+                               '<span class="code-group" style="margin-right:12px;">' + group2 + '</span>' +
+                               '<span class="code-group">' + group3 + '</span>';
+            // enable copy without spaces via click
+            // Enable select-to-copy and a click-to-copy helper with fallback
+            inline.addEventListener('click', () => {
+                const textToCopy = digits;
+                const tryClipboard = () => navigator.clipboard.writeText(textToCopy);
+                tryClipboard().catch(() => {
+                    // Fallback using a hidden textarea
+                    const ta = document.createElement('textarea');
+                    ta.value = textToCopy;
+                    ta.setAttribute('readonly', '');
+                    ta.style.position = 'absolute';
+                    ta.style.left = '-9999px';
+                    document.body.appendChild(ta);
+                    ta.select();
+                    try { document.execCommand('copy'); } catch {}
+                    document.body.removeChild(ta);
+                });
+            });
+            // Ensure Cmd/Ctrl+C while selecting copies digits-only
+            inline.addEventListener('copy', (e) => {
+                if (!e) return;
+                try {
+                    e.preventDefault();
+                    if (e.clipboardData) {
+                        e.clipboardData.setData('text/plain', digits);
+                    } else if (window.clipboardData) {
+                        window.clipboardData.setData('Text', digits);
+                    }
+                } catch {}
+            });
+            inline.title = 'Click to copy code (no spaces). You can also select normally.';
             // update display link with code param
             const link = document.getElementById('displayLink');
             if (link) {
-                const digits = (code || '').replace(/\D/g,'');
                 const url = new URL(window.location.origin + '/display.html');
                 if (digits) url.searchParams.set('code', digits);
                 link.href = url.toString();
@@ -727,7 +767,10 @@
             socket.emit('session-create', {}, (res) => {
                 if (res && res.ok) {
                     currentSessionCode = res.code;
-                    try { localStorage.setItem('controlSessionCode', currentSessionCode); } catch {}
+                    try {
+                        localStorage.setItem('controlSessionCode', currentSessionCode);
+                        if (res.resumeToken) localStorage.setItem('controlResumeToken', res.resumeToken);
+                    } catch {}
                     showSessionCodeInline(currentSessionCode);
                     showOverlayCode(currentSessionCode);
                     console.log('Session created', res);
